@@ -1,0 +1,30 @@
+apply plugin: 'groovy'
+repositories {
+    jcenter()
+    google()
+}
+
+dependencies {
+    compile gradleApi()
+    compile localGroovy()
+}
+
+configurations {
+    provided
+}
+
+sourceSets {
+    main {
+        compileClasspath += configurations.provided
+    }
+}
+
+dependencies {
+    compile 'com.android.tools.build:gradle:3.0.0'
+}
+
+tasks.withType(GroovyCompile) {
+    sourceCompatibility = '1.7'
+    targetCompatibility = '1.7'
+}
+

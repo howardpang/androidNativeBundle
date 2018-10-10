@@ -1,0 +1,63 @@
+apply plugin: 'com.android.application'
+apply plugin: 'com.yy.android.gradle.native-aar.import'
+
+android {
+    compileSdkVersion "${compile_sdk_version}" as Integer
+    buildToolsVersion "${build_tools_version}"
+    defaultConfig {
+        applicationId "com.myapplication"
+        minSdkVersion "${min_sdk_version}" as Integer
+        targetSdkVersion "${target_sdk_version}" as Integer
+        versionCode 1
+        versionName "1.0"
+        externalNativeBuild {
+            cmake {
+                arguments '-DANDROID_STL=c++_static', "-DCMAKE_VERBOSE_MAKEFILE:BOOL=ON"
+            }
+        }
+    }
+    buildTypes {
+        debug {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+
+     sourceSets.main {
+        //jniLibs.srcDir 'src/main/libs'
+        jni.srcDirs = [] //disable automatic ndk-build call
+    }
+
+    /*
+    productFlavors {
+        flavorDimensions "default"
+        export {
+            dimension "default"
+        }
+        local {
+            dimension "default"
+        }
+    }
+    */
+
+    externalNativeBuild {
+        ndkBuild {
+            path 'src/main/jni/Android.mk'
+        }
+        /*
+        cmake {
+            path 'src/main/jni/CMakeLists.txt'
+        }
+        */
+    }
+}
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    implementation "com.yy.android.native-aar:mylib:${version}"
+}
+
