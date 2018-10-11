@@ -49,7 +49,8 @@ class NativeBundleImportPlugin implements Plugin<Project> {
         }
 
         def variants
-        if (android.class.name.find("com.android.build.gradle.AppExtension") != null) {
+        if (android.class.name.find("com.android.build.gradle.AppExtension") != null ||
+            android.class.name.find("com.android.build.gradle.internal.dsl.BaseAppModuleExtension") != null) {
             variants = android.applicationVariants
         } else if (android.class.name.find("com.android.build.gradle.LibraryExtension") != null) {
             variants = android.libraryVariants

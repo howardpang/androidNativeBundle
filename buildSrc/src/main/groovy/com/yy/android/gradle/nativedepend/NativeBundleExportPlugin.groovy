@@ -24,6 +24,7 @@ import org.gradle.api.tasks.bundling.Jar
 import org.gradle.api.file.CopySpec
 import org.gradle.api.Action
 import com.android.build.gradle.internal.api.LibraryVariantImpl
+import com.android.builder.model.Version
 
 class NativeBundleExportPlugin implements Plugin<Project> {
 
@@ -33,7 +34,6 @@ class NativeBundleExportPlugin implements Plugin<Project> {
     void apply(Project project) {
         this.project = project
         createExtension()
-
 
         if (android.class.name.find("com.android.build.gradle.LibraryExtension") == null) {
             return
