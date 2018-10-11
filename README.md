@@ -3,9 +3,9 @@ nativeBundle plugin is a gradle plugin that extend  *bundle* task provided by an
 - android gradle plugin 3.0.0 above
 
 ## Build and Test
-1.Android studio import this project
-2.Enter 'gradlew publishToMavenLocal' command in Terminal or click 'publishToMavenLocal' task in gradle task list
-3.Open *settings.gradle*, include 'app' project and build it
+1.Android studio import this project  
+2.Enter 'gradlew publishToMavenLocal' command in Terminal or click 'publishToMavenLocal' task in gradle task list  
+3.Open *settings.gradle*, include 'app' project and build it  
 
 ## Usage
 ### 1.Edit your root *build.gradle* file, add following line to the file
