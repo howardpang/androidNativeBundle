@@ -1,71 +1,95 @@
+apply plugin: 'maven'
 apply plugin: 'maven-publish'
-apply plugin: 'signing'
+apply plugin: 'com.jfrog.bintray'
 
-def isReleaseBuild() {
-    return version.contains("SNAPSHOT") == false
+ext {
+    bintrayRepo = 'gradle-plugins'
+    bintrayName = 'nativeBundle'
+
+    publishedGroupId = 'com.ydq.android.gradle.build.tool'
+    libraryName = 'NativeBundle'
+    artifact = 'nativeBundle'
+
+    libraryDescription = 'A gradle plugin that support publish c/c++ headers to \'aar\' and depend those \'aar\'.'
+
+    siteUrl = 'https://github.com/howardpang/androidNativeBundle'
+    gitUrl = 'https://github.com/howardpang/androidNativeBundle'
+
+    libraryVersion = '1.0.0'
+
+    developerId = 'howard'
+    developerName = 'Howard Pang'
+    developerEmail = 'howard_pang@outlook.com'
+
+    licenseName = 'The Apache Software License, Version 2.0'
+    licenseUrl = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+    allLicenses = ["Apache-2.0"]
 }
 
-def getReleaseRepositoryUrl() {
-    return hasProperty('RELEASE_REPOSITORY_URL') ? RELEASE_REPOSITORY_URL
-            : "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
-}
+group = 'com.ydq.android.gradle.build.tool'
 
-def getSnapshotRepositoryUrl() {
-    return hasProperty('SNAPSHOT_REPOSITORY_URL') ? SNAPSHOT_REPOSITORY_URL
-            : "https://oss.sonatype.org/content/repositories/snapshots/"
+task srcJar(type: Jar) {
+    classifier 'sources'
+    from new File("${rootDir}/buildSrc/src")
 }
-
-def getRepositoryUsername() {
-    return hasProperty('NEXUS_USERNAME') ? NEXUS_USERNAME : ""
-}
-
-def getRepositoryPassword() {
-    return hasProperty('NEXUS_PASSWORD') ? NEXUS_PASSWORD : ""
-}
-
-task androidSourcesJar(type: Jar) {
-    classifier = 'sources'
-    if(project.hasProperty("android")) {
-        from android.sourceSets.main.java.sourceFiles
-    }
-}
-
-task androidNativeJar(type: Jar) {
-    classifier = 'so'
-    from(new File(buildDir, 'libs'))
-    include("**/*.so")
-}
-
-task androidNativeZip(type: Zip) {
-    classifier = 'so'
-    from(new File(buildDir, 'libs'))
-    include("**/*.so")
-}
-
-//task gradlePluginJar(type: Copy) {
-//
-//    println "gradle plugin from: ${bs.list()}"
-//    include("**/*.jar")
-//
-//    from(bs)
-//}
 
 publishing {
-    repositories {
-        maven {
-            credentials {
-                username = getRepositoryUsername()
-                password = getRepositoryPassword()
-            }
+    publications {
+        mavenJar(MavenPublication) {
 
-            if (isReleaseBuild()) {
-                url getReleaseRepositoryUrl()
-            } else {
-                url getSnapshotRepositoryUrl()
+            File jar = new File(projectDir, "buildSrc/build/libs/buildSrc.jar")
+            artifact jar
+            artifact srcJar
+            artifactId "nativeBundle"
+            groupId publishedGroupId
+
+            pom.withXml {
+                def root = asNode()
+                root.appendNode('name', 'Native bundle')
+                root.appendNode('url', gitUrl)
+                root.appendNode('description', libraryDescription)
+
+                def scm = root.appendNode('scm')
+                scm.appendNode('url', gitUrl)
+                scm.appendNode('connection', 'scm:git:git://github.com/howardpang/androidNativeBundle.git')
+
+                def license = root.appendNode('licenses').appendNode('license')
+                license.appendNode('name', licenseName)
+                license.appendNode('url', licenseUrl)
+                license.appendNode('distribution', 'lib')
+
+                def developers = root.appendNode('developers')
+                def nabil = developers.appendNode('developer')
+                nabil.appendNode('id', developerId)
+                nabil.appendNode('name', developerName)
+                nabil.appendNode('email', developerEmail)
             }
         }
     }
-
 }
 
 
+Properties properties = new Properties()
+properties.load(project.rootProject.file('local.properties').newDataInputStream())
+
+bintray {
+    user = properties.getProperty("bintray.user")
+    key = properties.getProperty("bintray.apikey")
+    publications = ['mavenJar']
+    pkg {
+        repo = bintrayRepo
+        name = bintrayName
+        desc = libraryDescription
+        websiteUrl = siteUrl
+        vcsUrl = gitUrl
+        licenses = allLicenses
+        dryRun = false
+        publish = true
+        publicDownloadNumbers = true
+        version {
+            desc = libraryDescription
+        }
+    }
+}
+
+bintrayUpload.dependsOn 'generatePomFileForMavenJarPublication'

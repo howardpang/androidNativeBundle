@@ -8,20 +8,22 @@ nativeBundle plugin is a gradle plugin that extend  *bundle* task provided by an
 3.Open *settings.gradle*, include 'app' project and build it  
 
 ## Usage
-### 1.Edit your root *build.gradle* file, add following line to the file
+### 1.Edit your root *build.gradle* file, add  *classpath 'com.ydq.android.gradle.build.tool:nativeBundle:1.0.0'* to the file
     buildscript {
         repositories {
-            maven { url 'plugins'}
+            jcenter()
+            google()
         }
         dependencies {
-            // NOTE: Do not place your application dependencies here; they belong
-            classpath 'com.yy.android.gradle.build.tool:nativeBundle:1.0.0-SNAPSHOT'
+            classpath 'com.android.tools.build:gradle:3.0.0'
+            //Add nativeBundle dependency
+            classpath 'com.ydq.android.gradle.build.tool:nativeBundle:1.0.0'
         }
     }
 ### 2. Export header to aar
 ##### 1. Apply plugin to your lib, add following line to your lib *build.gradle*
     apply plugin: 'com.android.library'
-    apply plugin: 'com.yy.android.gradle.native-aar.export' // must below android gradle plugin
+    apply plugin: 'com.ydq.android.gradle.native-aar.export' // must below android gradle plugin
 ##### 2. Specify header path that you want to export, add following code segment to your lib *build.gradle*;
     nativeBundleExport {
         headerDir = "${project.projectDir}/src/main/jni/include"
@@ -60,13 +62,13 @@ nativeBundle plugin is a gradle plugin that extend  *bundle* task provided by an
     publishing {
         publications {
             maven(MavenPublication) {
-                groupId 'com.yy.android.native-aar'
+                groupId 'com.ydq.android.native-aar'
                 artifactId "mylib"
                 artifact bundleRelease
             }
 
             mavenStaticBundle(MavenPublication) {
-                groupId 'com.yy.android.native-aar'
+                groupId 'com.ydq.android.native-aar'
                 artifactId "mylib-static"
                 artifact bundleStaticLibRelease
             }
@@ -76,10 +78,10 @@ nativeBundle plugin is a gradle plugin that extend  *bundle* task provided by an
 ### 3. Import aar
 ##### 1. Apply plugin to your lib/app, add following line to your lib/app *build.gradle*
     apply plugin: 'com.android.application'
-    apply plugin: 'com.yy.android.gradle.native-aar.import' // must below android gradle plugin
+    apply plugin: 'com.ydq.android.gradle.native-aar.import' // must below android gradle plugin
     
 ##### 2. If you use 'externalNativeBuild' to build, there are two ways to build
-* ndkBuild: Add this line <br>*include ${ANDROID_GRADLE_NATIVE_BUNDLE_PLUGIN_MK} #must followed by "include $(BUILD_SHARED_LIBRARY)" or "include $(BUILD_STATIC_LIBRARY)"* <br>to every module that you want, like this
+* ndkBuild: Add this line <br>*include ${ANDROID_GRADLE_NATIVE_BUNDLE_PLUGIN_MK} #must followed by "include $(BUILD_SHARED_LIBRARY)" or "include $(BUILD_STATIC_LIBRARY)"* <br>to every module that you want in *Android.mk*, like this
 
 ``` 
 include $(CLEAR_VARS)

@@ -1,5 +1,5 @@
 apply plugin: 'com.android.application'
-apply plugin: 'com.yy.android.gradle.native-aar.import'
+apply plugin: 'com.ydq.android.gradle.native-aar.import'
 
 android {
     compileSdkVersion "${compile_sdk_version}" as Integer
@@ -13,6 +13,10 @@ android {
         externalNativeBuild {
             cmake {
                 arguments '-DANDROID_STL=c++_static', "-DCMAKE_VERBOSE_MAKEFILE:BOOL=ON"
+            }
+            ndkBuild {
+                arguments 'V=1'
+                abiFilters "armeabi-v7a"
             }
         }
     }
