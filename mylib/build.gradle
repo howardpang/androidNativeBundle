@@ -1,5 +1,6 @@
 apply plugin: 'com.android.library'
 apply plugin: 'com.ydq.android.gradle.native-aar.export'
+apply plugin: 'com.ydq.android.gradle.native-aar.import'
 
 android {
     compileSdkVersion "${compile_sdk_version}" as Integer
@@ -58,6 +59,7 @@ android {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation project(':mylibrary2')
 }
 
 nativeBundleExport {
@@ -76,7 +78,7 @@ publishing {
             groupId 'com.ydq.android.native-aar'
             artifactId "mylib"
             //artifact bundleExportRelease
-            artifact bundleRelease
+            artifact new File(project.buildDir, "outputs/aar/mylib-release.aar")
         }
 
         mavenStatic(MavenPublication) {

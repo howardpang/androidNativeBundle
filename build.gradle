@@ -17,7 +17,7 @@ allprojects {
     repositories {
         jcenter()
         google()
-        //mavenLocal()
+        mavenLocal()
     }
 }
 

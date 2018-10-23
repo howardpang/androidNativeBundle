@@ -62,6 +62,7 @@ android {
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    implementation "com.yy.android.native-aar:mylib:${version}"
+    implementation "com.ydq.android.native-aar:mylib:${version}"
+    implementation project(':mylibrary2')
 }
 

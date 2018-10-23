@@ -18,10 +18,27 @@ package com.yy.android.gradle.nativedepend
 import org.gradle.api.Project
 import org.gradle.api.Plugin
 import org.gradle.api.artifacts.ArtifactCollection
+import com.android.build.gradle.internal.api.LibraryVariantImpl
 import com.android.build.gradle.internal.publishing.AndroidArtifacts.ArtifactScope
 import com.android.build.gradle.internal.publishing.AndroidArtifacts.ArtifactType
 import com.android.build.gradle.internal.publishing.AndroidArtifacts.ConsumedConfigType
+import com.android.build.gradle.internal.scope.VariantScopeImpl
+import org.gradle.api.artifacts.ArtifactView
+import org.gradle.api.artifacts.component.ComponentIdentifier
+import org.gradle.api.internal.artifacts.configurations.DefaultConfiguration
+import org.gradle.api.internal.artifacts.configurations.DefaultVariant
+import com.android.build.gradle.BasePlugin
+import org.gradle.api.artifacts.Configuration
 import org.apache.commons.io.FileUtils
+
+import org.gradle.api.artifacts.Dependency
+import com.android.build.gradle.internal.dependency.VariantDependencies
+import org.gradle.api.internal.artifacts.dependencies.DefaultProjectDependency
+import org.gradle.api.artifacts.component.ProjectComponentIdentifier
+import static com.android.build.gradle.internal.publishing.AndroidArtifacts.ARTIFACT_TYPE
+import org.gradle.api.Action
+import org.gradle.api.attributes.AttributeContainer
+import org.gradle.api.specs.Spec
 
 class NativeBundleImportPlugin implements Plugin<Project> {
 
@@ -59,9 +76,10 @@ class NativeBundleImportPlugin implements Plugin<Project> {
             return
         }
 
-        variants.whenObjectAdded { variant ->
+        variants.whenObjectAdded  { variant->
             hookVariant(variant, gradleMk, intermediatesDir)
         }
+
         project.tasks.getByName("preBuild").doFirst {
             // clean task will delete the files, so we should recreate
             if (!intermediatesDir.exists()) {
@@ -94,7 +112,12 @@ class NativeBundleImportPlugin implements Plugin<Project> {
         gradleMk.createNewFile()
 
         //List<ResolvedDependency> dependencies =  DependenciesUtils.get3rdResolveDependencies(project, variant.runtimeConfiguration)
-        ArtifactCollection aars = variant.variantData.scope.getArtifactCollection(ConsumedConfigType.RUNTIME_CLASSPATH, ArtifactScope.EXTERNAL, ArtifactType.EXPLODED_AAR)
+        //ArtifactCollection aars = variant.variantData.scope.getArtifactCollection(ConsumedConfigType.RUNTIME_CLASSPATH, ArtifactScope.EXTERNAL, ArtifactType.EXPLODED_AAR)
+        Configuration configuration = variant.variantData.getVariantDependency().getCompileClasspath().copyRecursive{
+            return !(it instanceof DefaultProjectDependency)
+        }
+        ArtifactCollection aars = computeArtifactCollection(configuration, ArtifactScope.EXTERNAL, ArtifactType.EXPLODED_AAR)
+
         aars.artifacts.each { aar ->
             File aarDir = aar.file
             File includeDir = new File(aarDir, "jni/include")
@@ -141,7 +164,6 @@ class NativeBundleImportPlugin implements Plugin<Project> {
                 includeDirs.put(includeDir.parentFile, dstDir)
             }
         }
-
 
         File tmpMkFile = new File(gradleMk.parentFile, "tmp.mk")
         if (!gradleMk.exists()) {
@@ -281,5 +303,67 @@ class NativeBundleImportPlugin implements Plugin<Project> {
 
     protected NativeBundleImportExtension getNativeBundle() {
         return (NativeBundleImportExtension) project.nativeBundleImport
+    }
+
+    private static Spec<ComponentIdentifier> getComponentFilter(
+            ArtifactScope scope) {
+        switch (scope) {
+            case ArtifactScope.ALL:
+                return null;
+            case ArtifactScope.EXTERNAL:
+                // since we want both Module dependencies and file based dependencies in this case
+                // the best thing to do is search for non ProjectComponentIdentifier.
+                //return id -> !(id instanceof ProjectComponentIdentifier);
+            return new Spec<ComponentIdentifier>() {
+                @Override
+                boolean isSatisfiedBy(ComponentIdentifier componentIdentifier) {
+                    return !(componentIdentifier instanceof ProjectComponentIdentifier)
+                }
+            }
+            case ArtifactScope.MODULE:
+                return new Spec<ComponentIdentifier>() {
+                @Override
+                boolean isSatisfiedBy(ComponentIdentifier componentIdentifier) {
+                    return componentIdentifier instanceof ProjectComponentIdentifier
+                }
+            }
+                //return id -> id instanceof ProjectComponentIdentifier;
+            default:
+                throw new RuntimeException("unknown ArtifactScope value")
+        }
+    }
+
+    private ArtifactCollection computeArtifactCollection(
+            Configuration configuration,
+            ArtifactScope scope,
+            ArtifactType artifactType) {
+        Action<AttributeContainer> attributes = new Action<AttributeContainer>() {
+            @Override
+            void execute(AttributeContainer attributeContainer) {
+                attributeContainer.attribute(ARTIFACT_TYPE, artifactType.getType())
+            }
+        }
+
+        Spec<ComponentIdentifier> filter = getComponentFilter(scope)
+
+        boolean lenientMode = true
+                //Boolean.TRUE.equals(
+                 //       globalScope.getProjectOptions().get(BooleanOption.IDE_BUILD_MODEL_ONLY))
+
+        return configuration
+                .getIncoming()
+                .artifactView(
+                new Action<ArtifactView.ViewConfiguration>() {
+                    @Override
+                    void execute(ArtifactView.ViewConfiguration viewConfiguration) {
+                        viewConfiguration.attributes(attributes)
+                        if (filter != null) {
+                            viewConfiguration.componentFilter(filter)
+                        }
+                        // TODO somehow read the unresolved dependencies?
+                        viewConfiguration.lenient(lenientMode)
+                    }
+                }
+        ).getArtifacts()
     }
 }
