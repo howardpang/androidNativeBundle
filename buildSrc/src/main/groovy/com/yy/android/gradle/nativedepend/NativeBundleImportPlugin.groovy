@@ -72,7 +72,7 @@ class NativeBundleImportPlugin implements Plugin<Project> {
         } else if (android.class.name.find("com.android.build.gradle.LibraryExtension") != null) {
             variants = android.libraryVariants
         } else {
-            println("Only support android gradle plugin")
+            println(":${project.name}:Only support android gradle plugin")
             return
         }
 
@@ -84,7 +84,7 @@ class NativeBundleImportPlugin implements Plugin<Project> {
             // clean task will delete the files, so we should recreate
             if (!intermediatesDir.exists()) {
                 intermediatesDir.mkdirs()
-                println("re pull native bundle file")
+                println(":${project.name}:re pull native bundle file")
                 variants.each { variant->
                     hookVariant(variant, gradleMk, intermediatesDir)
                 }
@@ -172,13 +172,13 @@ class NativeBundleImportPlugin implements Plugin<Project> {
 
         if (android.externalNativeBuild.ndkBuild.path != null) {
             generateNdkBuildMk(tmpMkFile, includeDirs, linkLibs, wholeStaticLibs)
-            println("external ndk build ")
+            println(":${project.name}:external ndk build ")
         } else if (android.externalNativeBuild.cmake.path != null) {
             generateCMakeBuildMk(tmpMkFile, includeDirs, linkLibs, wholeStaticLibs)
-            println("external cmake build ")
+            println(":${project.name}:external cmake build ")
         } else {
             generateNdkBuildMk(tmpMkFile, includeDirs, linkLibs, wholeStaticLibs)
-            println("custom ndk build ")
+            println(":${project.name}:custom ndk build ")
         }
 
         if (!FileUtils.contentEquals(gradleMk, tmpMkFile)) {
@@ -189,7 +189,7 @@ class NativeBundleImportPlugin implements Plugin<Project> {
                     into dst
                 }
             }
-            println("update native bundle import make file ")
+            println(":${project.name}:update native bundle import make file ")
             project.copy {
                 from tmpMkFile
                 into tmpMkFile.parentFile

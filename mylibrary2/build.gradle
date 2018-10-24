@@ -21,6 +21,17 @@ android {
         }
     }
 
+    /*
+    productFlavors {
+        flavorDimensions "default"
+        export {
+            dimension "default"
+        }
+        local {
+            dimension "default"
+        }
+    }
+    */
 }
 
 dependencies {
