@@ -93,3 +93,4 @@ bintray {
 }
 
 bintrayUpload.dependsOn 'generatePomFileForMavenJarPublication'
+bintrayUpload.dependsOn srcJar
