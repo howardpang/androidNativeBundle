@@ -78,7 +78,7 @@ publishing {
             groupId 'com.ydq.android.native-aar'
             artifactId "mylib"
             //artifact bundleExportRelease
-            artifact new File(project.buildDir, "outputs/aar/mylib-release.aar")
+            artifact android.libraryVariants.find {it.name == "release"}.packageLibrary
         }
 
         mavenStatic(MavenPublication) {
