@@ -64,13 +64,13 @@ class NdkDebugHelper implements Plugin<DefaultSettings> {
                             if (it.name == "externalNativeBuild${f.name.capitalize()}Debug") {
                                 debugTask = it
                                 if (releaseTask != null) {
-                                    hookExternalNativeBuildTask(debugTask, releaseTask)
+                                    hookExternalNativeBuildTask(project, debugTask, releaseTask)
                                 }
                             }
                             if (it.name == "externalNativeBuild${f.name.capitalize()}Release") {
                                 releaseTask = it
                                 if (debugTask != null) {
-                                    hookExternalNativeBuildTask(debugTask, releaseTask)
+                                    hookExternalNativeBuildTask(project, debugTask, releaseTask)
                                 }
                             }
                         }
@@ -82,13 +82,13 @@ class NdkDebugHelper implements Plugin<DefaultSettings> {
                         if (it.name == "externalNativeBuildDebug") {
                             debugTask = it
                             if (releaseTask != null) {
-                                hookExternalNativeBuildTask(debugTask, releaseTask)
+                                hookExternalNativeBuildTask(project, debugTask, releaseTask)
                             }
                         }
                         if (it.name == "externalNativeBuildRelease") {
                             releaseTask = it
                             if (debugTask != null) {
-                                hookExternalNativeBuildTask(debugTask, releaseTask)
+                                hookExternalNativeBuildTask(project, debugTask, releaseTask)
                             }
                         }
                     }
@@ -97,9 +97,9 @@ class NdkDebugHelper implements Plugin<DefaultSettings> {
         }
     }
 
-    void hookExternalNativeBuildTask(Task debugTask, Task releaseTask) {
+    void hookExternalNativeBuildTask(Project project, Task debugTask, Task releaseTask) {
         if (debugTask != null && releaseTask != null) {
-            println("hook tasks " + releaseTask.name + " : " + debugTask.name)
+            println("hook tasks " + project.name + ":" + releaseTask.name + ", " + project.name + ":" + debugTask.name)
             releaseTask.dependsOn debugTask
             releaseTask.doLast {
                 project.copy {
