@@ -117,11 +117,11 @@ class NdkDebugHelper implements Plugin<DefaultSettings> {
         def pw = new PrintWriter(buildGradle.newWriter(false))
         pw.print("""apply plugin: 'com.android.application'
 android { 
-    compileSdkVersion 23 
+    compileSdkVersion 24 
     defaultConfig { 
         applicationId "${hostPacakgeName}" 
         minSdkVersion 23 
-        targetSdkVersion 27 
+        targetSdkVersion 24 
         versionCode 1 
         versionName "1.0" 
         externalNativeBuild {
