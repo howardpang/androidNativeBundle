@@ -76,10 +76,11 @@ class NativeBundleImportPlugin implements Plugin<Project> {
             return
         }
 
-        variants.whenObjectAdded  { variant->
-            hookVariant(variant, gradleMk, intermediatesDir)
+        project.afterEvaluate {
+            variants.all { variant ->
+                hookVariant(variant, gradleMk, intermediatesDir)
+            }
         }
-
         project.tasks.getByName("preBuild").doFirst {
             // clean task will delete the files, so we should recreate
             if (!intermediatesDir.exists()) {
@@ -112,11 +113,13 @@ class NativeBundleImportPlugin implements Plugin<Project> {
         gradleMk.createNewFile()
 
         //List<ResolvedDependency> dependencies =  DependenciesUtils.get3rdResolveDependencies(project, variant.runtimeConfiguration)
-        //ArtifactCollection aars = variant.variantData.scope.getArtifactCollection(ConsumedConfigType.RUNTIME_CLASSPATH, ArtifactScope.EXTERNAL, ArtifactType.EXPLODED_AAR)
+        ArtifactCollection aars = variant.variantData.scope.getArtifactCollection(ConsumedConfigType.RUNTIME_CLASSPATH, ArtifactScope.EXTERNAL, ArtifactType.EXPLODED_AAR)
+        /*
         Configuration configuration = variant.variantData.getVariantDependency().getCompileClasspath().copyRecursive{
             return !(it instanceof DefaultProjectDependency)
         }
         ArtifactCollection aars = computeArtifactCollection(configuration, ArtifactScope.EXTERNAL, ArtifactType.EXPLODED_AAR)
+        */
 
         aars.artifacts.each { aar ->
             File aarDir = aar.file
@@ -195,6 +198,9 @@ class NativeBundleImportPlugin implements Plugin<Project> {
                 into tmpMkFile.parentFile
                 rename tmpMkFile.name, gradleMk.name
             }
+            // delete externalNativeBuild dir to force gradle recreate then the IDE can parse new native source code
+            File externalBuildDir = new File(project.projectDir, ".externalNativeBuild")
+            externalBuildDir.deleteDir()
         }
     }
 
