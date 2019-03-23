@@ -69,6 +69,7 @@ class NativeBundleExportPlugin implements Plugin<Project> {
             extension 'aar'
             baseName "${project.name}-static-${variantName}"
             destinationDir new File(project.buildDir, 'outputs/aar')
+            version ''
         }.dependsOn project.task("bundleStaticLibPrepare${taskNameSuffix}").doFirst {
             def et = project.tasks.getByName("externalNativeBuild${taskNameSuffix}")
             if (config.bundleStatic) {
@@ -99,7 +100,9 @@ class NativeBundleExportPlugin implements Plugin<Project> {
                 }
             }
         }
-        bundleTask.finalizedBy("bundleStaticLibPrepare${taskNameSuffix}")
+        if (config.bundleStatic) {
+            bundleTask.finalizedBy("bundleStaticLib${taskNameSuffix}")
+        }
     }
 
     private class CopyAction implements Action<CopySpec> {
