@@ -24,4 +24,5 @@ class NativeBundleImportExtension {
 
     File ANDROID_GRADLE_NATIVE_BUNDLE_PLUGIN_MK
     String wholeStaticLibs
+    Set<String> excludeDependencies = []
 }

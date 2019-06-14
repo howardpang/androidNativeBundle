@@ -81,7 +81,7 @@ nativeBundle plugin is a gradle plugin that extend  *bundle* task provided by an
     apply plugin: 'com.ydq.android.gradle.native-aar.import' // must below android gradle plugin
     
 ##### 2. If you use 'externalNativeBuild' to build, there are two ways to build
-* ndkBuild: Add this line <br>*include ${ANDROID_GRADLE_NATIVE_BUNDLE_PLUGIN_MK} #must followed by "include $(BUILD_SHARED_LIBRARY)" or "include $(BUILD_STATIC_LIBRARY)"* <br>to every module that you want in *Android.mk*, like this
+* ndkBuild: Add this line <br>*include ${ANDROID_GRADLE_NATIVE_BUNDLE_PLUGIN_MK} #must be before "include $(BUILD_SHARED_LIBRARY)" or "include $(BUILD_STATIC_LIBRARY)"* <br>to every module that you want in *Android.mk*, like this
 
 ``` 
 include $(CLEAR_VARS)
@@ -119,11 +119,18 @@ def execmd = ["$ndkbuildcmd", "-j${coreNum}", "V=1", "NDK_PORJECT_PATH=$buildDir
                           "APP_BUILD_SCRIPT=$androidMKfile", "NDK_APPLICATION_MK=$applicationMKfile", "ANDROID_GRADLE_NATIVE_BUNDLE_PLUGIN_MK=${nativeBundleImport.ANDROID_GRADLE_NATIVE_BUNDLE_PLUGIN_MK}"]
 ````
 
-##### 4. If you want you link some static library with whole archive, you can set it in *build.gradle* like this
+##### 4. If you want to link some static library with whole archive, you can set it in *build.gradle* like this
     nativeBundleImport {
         wholeStaticLibs = "libxx.a:libyy.a" // Library is seperated by colon
     }
     
-##### 5. The plugin will extract headers(include) and library to *"${project.projectDir}/build/nativeLib/"*, you can find what interfaces that aar contain 
-##### 6. If android studio IDE can't parse those headers when you edit c/c++ source and press 'Sync Project With Gradle Files' button to re-sync project
+##### 5. If you don't want to add some dependency to native compile, for example, you have 'implementation "ggg:mmm:1.0.0"  ' dependency and it contain native interface, you can do like this
+    nativeBundleImport {
+        //wholeStaticLibs = "libxx.a:libyy.a" // Library is seperated by colon
+        excludeDependencies.add("ggg:mmm")
+        //excludeDependencies.add("xxx:yyy")
+    }
+    
+##### 6. The plugin will extract headers(include) and library to *"${project.projectDir}/build/nativeLib/"*, you can find what interfaces that aar contain 
+##### 7. If android studio IDE can't parse those headers when you edit c/c++ source and press 'Sync Project With Gradle Files' button to re-sync project
 
