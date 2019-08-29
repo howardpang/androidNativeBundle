@@ -88,6 +88,14 @@ class NativeBundleExportPlugin implements Plugin<Project> {
                         exclude config.excludeStaticLibs
                         into "${bundleStaticOutputDir}/jni"
                     }
+                    et.nativeBuildConfigurationsJsons.each { File js ->
+                        project.copy {
+                            from js.parentFile
+                            include "**.a"
+                            exclude config.excludeStaticLibs
+                            into "${bundleStaticOutputDir}/jni/${js.parentFile.name}"
+                        }
+                    }
                 }
                 if (config.extraStaticLibDir != null) {
                     project.copy {
