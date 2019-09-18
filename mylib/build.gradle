@@ -57,6 +57,8 @@ android {
     }
 }
 
+
+
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation project(':mylibrary2')
@@ -72,20 +74,23 @@ nativeBundleExport {
 
 apply from: '../publish_lib.gradle'
 
-publishing {
-    publications {
-        maven(MavenPublication) {
-            groupId 'com.ydq.android.native-aar'
-            artifactId "mylib"
-            //artifact bundleExportRelease
-            artifact android.libraryVariants.find {it.name == "release"}.packageLibrary
-        }
+project.afterEvaluate {
 
-        mavenStatic(MavenPublication) {
-            groupId 'com.ydq.android.native-aar'
-            artifactId "mylib-static"
-            //artifact bundleStaticLibExportRelease
-            artifact bundleStaticLibRelease
+    publishing {
+        publications {
+            maven(MavenPublication) {
+                groupId 'com.ydq.android.native-aar'
+                artifactId "mylib"
+                //artifact bundleExportRelease
+                artifact android.libraryVariants.find { it.name == "release" }.packageLibrary
+            }
+
+            mavenStatic(MavenPublication) {
+                groupId 'com.ydq.android.native-aar'
+                artifactId "mylib-static"
+                //artifact bundleStaticLibExportRelease
+                artifact bundleStaticLibRelease
+            }
         }
     }
 }

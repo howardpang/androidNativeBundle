@@ -24,7 +24,6 @@ import org.gradle.api.tasks.bundling.Jar
 import org.gradle.api.file.CopySpec
 import org.gradle.api.Action
 import com.android.build.gradle.internal.api.LibraryVariantImpl
-import com.android.builder.model.Version
 
 class NativeBundleExportPlugin implements Plugin<Project> {
 
@@ -47,7 +46,7 @@ class NativeBundleExportPlugin implements Plugin<Project> {
             }else {
                 config = android.productFlavors.getByName(variant.flavorName).nativeBundleExport
             }
-            hookBundleTask(variant.packageLibrary, variant.name, config)
+            hookBundleTask(GradleApiAdapter.getPackageLibraryTask(variant), variant.name, config)
         }
     }
 
@@ -64,13 +63,14 @@ class NativeBundleExportPlugin implements Plugin<Project> {
             createLinkOrderTxt(config.linkOrder, linkOrderFile)
         }
 
-        project.task("bundleStaticLib${taskNameSuffix}", type: Jar) {
+        Task staticBundleTask = project.task("bundleStaticLib${taskNameSuffix}", type: Jar) {
             from bundleStaticOutputDir
             extension 'aar'
             baseName "${project.name}-static-${variantName}"
             destinationDir new File(project.buildDir, 'outputs/aar')
             version ''
-        }.dependsOn project.task("bundleStaticLibPrepare${taskNameSuffix}").doFirst {
+        }
+        Task staticBundlePrepareTask = project.task("bundleStaticLibPrepare${taskNameSuffix}").doFirst {
             def et = project.tasks.getByName("externalNativeBuild${taskNameSuffix}")
             if (config.bundleStatic) {
                 if (bundleStaticOutputDir.exists()) bundleStaticOutputDir.deleteDir()
@@ -108,6 +108,8 @@ class NativeBundleExportPlugin implements Plugin<Project> {
                 }
             }
         }
+        staticBundleTask.dependsOn staticBundlePrepareTask
+        staticBundlePrepareTask.dependsOn bundleTask
         if (config.bundleStatic) {
             bundleTask.finalizedBy("bundleStaticLib${taskNameSuffix}")
         }

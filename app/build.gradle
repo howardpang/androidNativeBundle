@@ -61,7 +61,7 @@ android {
 }
 
 dependencies {
-    compile fileTree(dir: 'libs', include: ['*.jar'])
+    api fileTree(dir: 'libs', include: ['*.jar'])
     implementation "com.ydq.android.native-aar:mylib:${version}"
     implementation project(':mylibrary2')
 }

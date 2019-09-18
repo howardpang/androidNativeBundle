@@ -1,1 +1,1 @@
-include ':mylib', ':mylibrary2'//, ':app'
+include 'buildSrc', ':mylib', ':mylibrary2'//, ':app'
