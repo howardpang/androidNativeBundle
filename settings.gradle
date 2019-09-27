@@ -1,1 +1,45 @@
 include 'buildSrc', ':mylib', ':mylibrary2'//, ':app'
+
+import org.gradle.internal.operations.BuildOperationDescriptor
+import org.gradle.internal.operations.BuildOperationListener
+import org.gradle.internal.operations.BuildOperationListenerManager;
+import org.gradle.internal.operations.OperationFinishEvent
+import org.gradle.internal.operations.OperationIdentifier
+import org.gradle.internal.operations.OperationProgressEvent
+import org.gradle.internal.operations.OperationStartEvent
+import java.lang.reflect.Field
+
+settings.gradle.settingsEvaluated {
+    settings.gradle.rootProject {
+        BuildOperationListenerManager buildOperationListenerManager = it.getServices().get(BuildOperationListenerManager.class)
+        Field  listenersF = buildOperationListenerManager.class.getDeclaredField("listeners")
+        listenersF.setAccessible(true)
+        List listeners = listenersF.get(buildOperationListenerManager)
+        BuildOperationListener buildOperationListener = new BuildOperationListener() {
+            @Override
+            void started(BuildOperationDescriptor buildOperation, OperationStartEvent startEvent) {
+
+            }
+
+            @Override
+            void progress(OperationIdentifier operationIdentifier, OperationProgressEvent progressEvent) {
+
+            }
+
+            @Override
+            void finished(BuildOperationDescriptor buildOperation, OperationFinishEvent finishEvent) {
+                if (buildOperation.displayName.startsWith("Download") || buildOperation.displayName.startsWith("Upload") ) {
+                    println( buildOperation.displayName)
+                }
+            }
+        }
+        it.beforeEvaluate {
+            println(" BuildOperationListenerManager size " + listeners.size())
+            buildOperationListenerManager.addListener(buildOperationListener)
+        }
+        it.gradle.buildFinished {
+            buildOperationListenerManager.removeListener(buildOperationListener)
+            println(" BuildOperationListenerManager size " + listeners.size())
+        }
+    }
+}

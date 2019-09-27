@@ -68,6 +68,29 @@ publishing {
     }
 }
 
+project.tasks.whenObjectAdded { Task t->
+    if( t.class.name == "org.gradle.api.publish.maven.tasks.PublishToMavenLocal_Decorated") {
+        t.doLast {
+            String repoUrl = it.getMavenRepositoryLocator().getLocalMavenRepository()
+            String group = it.getPublication().getGroupId()
+            group = group.replace(".", File.separator)
+            String artifact = it.getPublication().getArtifactId()
+            String version = it.getPublication().getVersion()
+            String uploadUrl = repoUrl + File.separator + group + File.separator + artifact + File.separator + version
+            println("Uploading " + uploadUrl)
+        }
+    }else if (t.class.name == "org.gradle.api.publish.maven.tasks.PublishToMavenRepository_Decorated") {
+        t.doLast {
+            String repoUrl = it.getRepository().getUrl()
+            String group = it.getPublication().getGroupId()
+            group = group.replace(".", File.separator)
+            String artifact = it.getPublication().getArtifactId()
+            String version = it.getPublication().getVersion()
+            String uploadUrl = repoUrl + File.separator + group + File.separator + artifact + File.separator + version
+            println("Uploading " + uploadUrl)
+        }
+    }
+}
 
 Properties properties = new Properties()
 properties.load(project.rootProject.file('local.properties').newDataInputStream())
