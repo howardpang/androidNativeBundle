@@ -7,11 +7,12 @@ import org.gradle.internal.operations.OperationFinishEvent
 import org.gradle.internal.operations.OperationIdentifier
 import org.gradle.internal.operations.OperationProgressEvent
 import org.gradle.internal.operations.OperationStartEvent
+import org.gradle.api.logging.StandardOutputListener;
 import java.lang.reflect.Field
 
 settings.gradle.settingsEvaluated {
-    settings.gradle.rootProject {
-        BuildOperationListenerManager buildOperationListenerManager = it.getServices().get(BuildOperationListenerManager.class)
+    settings.gradle.rootProject { Project rootPrj->
+        BuildOperationListenerManager buildOperationListenerManager = rootPrj.getServices().get(BuildOperationListenerManager.class)
         Field  listenersF = buildOperationListenerManager.class.getDeclaredField("listeners")
         listenersF.setAccessible(true)
         List listeners = listenersF.get(buildOperationListenerManager)
@@ -29,17 +30,40 @@ settings.gradle.settingsEvaluated {
             @Override
             void finished(BuildOperationDescriptor buildOperation, OperationFinishEvent finishEvent) {
                 if (buildOperation.displayName.startsWith("Download") || buildOperation.displayName.startsWith("Upload") ) {
-                    println( buildOperation.displayName)
+                    rootPrj.logger.quiet(buildOperation.displayName)
                 }
             }
         }
-        it.beforeEvaluate {
-            println(" BuildOperationListenerManager size " + listeners.size())
+
+        StandardOutputListener standardOutputListener = new StandardOutputListener() {
+            boolean isProcessing = false // protect dead recursive
+            @Override
+            void onOutput(CharSequence output) {
+                if (!isProcessing) {
+                    //Filter log
+                    if ((output.toString().indexOf("Upload") != -1 || output.toString().indexOf("Download") != -1)) {
+                        isProcessing = true
+                        rootPrj.logger.quiet(output)
+                        isProcessing = false
+                    }
+                }
+            }
+        }
+
+        rootPrj.beforeEvaluate {
+            println(" beforeEvaluate BuildOperationListenerManager size " + listeners.size())
             buildOperationListenerManager.addListener(buildOperationListener)
         }
-        it.gradle.buildFinished {
+        rootPrj.afterEvaluate {
+            //Some log will not output to 'Build' window, so we can add a listener to redirect it to 'Build'
+            //rootPrj.logging.start()
+            //rootPrj.logging.setLevelInternal(LogLevel.DEBUG)
+            //rootPrj.logging.addStandardOutputListener(standardOutputListener)
+        }
+        rootPrj.gradle.buildFinished {
             buildOperationListenerManager.removeListener(buildOperationListener)
-            println(" BuildOperationListenerManager size " + listeners.size())
+            println(" build finish BuildOperationListenerManager size " + listeners.size())
+            //rootPrj.logging.removeStandardOutputListener(standardOutputListener)
         }
     }
 }
