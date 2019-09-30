@@ -136,11 +136,11 @@ class NativeBundleImportPlugin implements Plugin<Project> {
         def pw = tmpMkFile.newPrintWriter()
 
         //gather 'implementation "ggggg:mmmm:vvvvv:armeabi-v7a@har", implementation "ggggg:mmmm:vvvvv:armeabi-v7a@so" ' native info
-        def runtimeResolveDepencies = DependenciesUtils.getFirstLevelDependencies(project, "${variant.name}RuntimeClasspath")
-        Set<DefaultProjectDependency> projectDepencies = []
-        DependenciesUtils.collectProjectDependencies(project, projectDepencies)
-        runtimeResolveDepencies.each { d ->
-            if (projectDepencies.find { it.name == d.moduleName } != null) {
+        def resolveDependencies = DependenciesUtils.getFirstLevelDependencies(project, "${variant.name}CompileClasspath")
+        Set<DefaultProjectDependency> projectDependencies = []
+        DependenciesUtils.collectProjectDependencies(project, projectDependencies)
+        resolveDependencies.each { d ->
+            if (projectDependencies.find { it.name == d.moduleName } != null) {
                 return
             }
 
@@ -189,7 +189,6 @@ class NativeBundleImportPlugin implements Plugin<Project> {
         pw.flush()
         pw.close()
 
-
         /*
         Configuration configuration = variant.variantData.getVariantDependency().getCompileClasspath().copyRecursive{
             return !(it instanceof DefaultProjectDependency)
@@ -197,9 +196,8 @@ class NativeBundleImportPlugin implements Plugin<Project> {
         ArtifactCollection aars = computeArtifactCollection(configuration, ArtifactScope.EXTERNAL, ArtifactType.EXPLODED_AAR)
         */
 
-
         //gather 'aar' native info
-        ArtifactCollection aars = variant.variantData.scope.getArtifactCollection(ConsumedConfigType.RUNTIME_CLASSPATH, ArtifactScope.EXTERNAL, ArtifactType.EXPLODED_AAR)
+        ArtifactCollection aars = variant.variantData.scope.getArtifactCollection(ConsumedConfigType.COMPILE_CLASSPATH, ArtifactScope.EXTERNAL, ArtifactType.EXPLODED_AAR)
         aars.artifacts.each { aar ->
             File aarDir = aar.file
             File includeDir = new File(aarDir, "jni/include")
