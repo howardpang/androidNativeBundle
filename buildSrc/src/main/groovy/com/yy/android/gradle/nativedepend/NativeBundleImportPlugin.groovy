@@ -145,13 +145,6 @@ class NativeBundleImportPlugin implements Plugin<Project> {
             }
 
             ResolvedArtifact har = null
-            ResolvedArtifact lib = d.moduleArtifacts.find { a ->
-                if (a.classifier != null && APP_ABIS.find { it == a.classifier } != null) {
-                    if (a.extension == "a" || a.extension == "so") {
-                        return true
-                    }
-                }
-            }
             if (d.moduleArtifacts.size() > 1) {
                 har = d.moduleArtifacts.find { a ->
                     if (a.extension == "har") {
@@ -159,29 +152,38 @@ class NativeBundleImportPlugin implements Plugin<Project> {
                     }
                 }
             }
-            if (lib != null) {
-                File dstDir = new File(intermediatesDir, "${flavorDir}${d.moduleGroup}/${d.moduleName}/jni")
-                pw.println("# ${lib.file.path}")
-                File libPath = new File(dstDir, "${lib.classifier}/lib${lib.name}.${lib.extension}")
-                sos.put(lib.file, libPath)
-                if (variantSourceSet != null) {
-                    variantSourceSet.jniLibs.srcDirs += dstDir
-                }
-                if (har != null) {
-                    pw.println("# ${har.file.path}")
-                    File includePath = new File(dstDir, "include")
-                    hars.put(har.file, includePath)
 
-                    boolean isExclude = (excludeDependencies.find { it.group == d.moduleGroup && it.name == d.moduleName } != null)
-                    if(!isExclude) {
-                        includeDirs.add(includePath)
-                        List<File> archLibs = linkLibs.get(lib.classifier)
-                        if (archLibs == null) {
-                            archLibs = []
-                            linkLibs.put(lib.classifier, archLibs)
+            boolean isExclude = (excludeDependencies.find { it.group == d.moduleGroup && it.name == d.moduleName } != null)
+            boolean haveArchive = false
+            d.moduleArtifacts.each { lib ->
+                if (lib.classifier != null && APP_ABIS.find { it == lib.classifier } != null) {
+                    if (lib.extension == "a" || lib.extension == "so") {
+                        haveArchive = true
+                        File dstDir = new File(intermediatesDir, "${flavorDir}${d.moduleGroup}/${d.moduleName}/jni")
+                        pw.println("# ${lib.file.path}")
+                        File libPath = new File(dstDir, "${lib.classifier}/lib${lib.name}.${lib.extension}")
+                        sos.put(lib.file, libPath)
+                        if (variantSourceSet != null) {
+                            variantSourceSet.jniLibs.srcDirs += dstDir
                         }
-                        archLibs.add(libPath)
+                        if (har != null && !isExclude) {
+                            List<File> archLibs = linkLibs.get(lib.classifier)
+                            if (archLibs == null) {
+                                archLibs = []
+                                linkLibs.put(lib.classifier, archLibs)
+                            }
+                            archLibs.add(libPath)
+                        }
                     }
+                }
+            }
+            if (har != null && haveArchive) {
+                pw.println("# ${har.file.path}")
+                File dstDir = new File(intermediatesDir, "${flavorDir}${d.moduleGroup}/${d.moduleName}/jni")
+                File includePath = new File(dstDir, "include")
+                hars.put(har.file, includePath)
+                if (!isExclude) {
+                    includeDirs.add(includePath)
                 }
             }
         }
