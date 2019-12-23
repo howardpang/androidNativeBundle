@@ -46,11 +46,12 @@ class NativeBundleExportPlugin implements Plugin<Project> {
             }else {
                 config = android.productFlavors.getByName(variant.flavorName).nativeBundleExport
             }
-            hookBundleTask(GradleApiAdapter.getPackageLibraryTask(variant), variant.name, config)
+            hookBundleTask(GradleApiAdapter.getPackageLibraryTask(variant), variant, config)
         }
     }
 
-    protected void hookBundleTask(Task bundleTask, String variantName, NativeBundleExportExtension config) {
+    protected void hookBundleTask(Task bundleTask, LibraryVariantImpl variant, NativeBundleExportExtension config) {
+        String variantName = variant.name
         String taskNameSuffix = variantName.capitalize()
         File bundleStaticOutputDir = new File("${project.buildDir}/intermediates/bundlesStatic/${variantName}")
 
@@ -82,13 +83,21 @@ class NativeBundleExportPlugin implements Plugin<Project> {
                 }
                 if (et != null) {
                     project.copy {
-                        from et.getObjFolder().path
+                        from et.getObjFolder()
                         include "**/**.a"
                         exclude "**/objs**"
                         exclude config.excludeStaticLibs
                         into "${bundleStaticOutputDir}/jni"
                     }
-                    et.nativeBuildConfigurationsJsons.each { File js ->
+
+                    def nativeBuildConfigurationsJsons
+                    if(et.hasProperty("nativeBuildConfigurationsJsons")) {
+                        nativeBuildConfigurationsJsons = et.nativeBuildConfigurationsJsons
+                    }else {
+                        nativeBuildConfigurationsJsons = variant.variantData.scope.getTaskContainer().externalNativeJsonGenerator.get().nativeBuildConfigurationsJsons
+                    }
+
+                    nativeBuildConfigurationsJsons.each { File js ->
                         project.copy {
                             from js.parentFile
                             include "**.a"
