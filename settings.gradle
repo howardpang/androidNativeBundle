@@ -1,4 +1,4 @@
-include 'buildSrc', ':mylib', ':mylibrary2'//, ':app'
+include 'buildSrc'
 
 import org.gradle.internal.operations.BuildOperationDescriptor
 import org.gradle.internal.operations.BuildOperationListener
