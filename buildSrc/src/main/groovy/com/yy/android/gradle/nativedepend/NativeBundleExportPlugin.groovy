@@ -57,7 +57,10 @@ class NativeBundleExportPlugin implements Plugin<Project> {
 
         File linkOrderFile = new File("${project.buildDir}/intermediates/linkOrder/${variantName}/", LINK_ORDER_TXT_FILE_NAME)
         if (config.headerDir != null) {
-            bundleTask.from(new File(config.headerDir), new CopyAction("jni/include"))
+            bundleTask.from(new File(config.headerDir)) {
+                include "**/*.h"
+                into "jni/include"
+            }
         }
         bundleTask.from(linkOrderFile, new CopyAction("jni"))
         bundleTask.doFirst {
