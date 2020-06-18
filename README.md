@@ -8,7 +8,7 @@ nativeBundle plugin is a gradle plugin that extend  *bundle* task provided by an
 3.Open *settings.gradle*, include 'app' project and build it  
 
 ## Usage
-### 1.Edit your root *build.gradle* file, add  *classpath 'com.ydq.android.gradle.build.tool:nativeBundle:1.0.3'* to the file
+### 1.Edit your root *build.gradle* file, add  *classpath 'com.ydq.android.gradle.build.tool:nativeBundle:1.0.6'* to the file
     buildscript {
         repositories {
             jcenter()
@@ -27,7 +27,8 @@ nativeBundle plugin is a gradle plugin that extend  *bundle* task provided by an
 ##### 2. Specify header path that you want to export, add following code segment to your lib *build.gradle*;
     nativeBundleExport {
         headerDir = "${project.projectDir}/src/main/jni/include"
-        //excludeHeaderFiles.add("**/**.cpp")
+        //excludeHeaderFilter.add("**/**.cpp")
+        //includeHeaderFilter.add("**/**.h")
         //bundleStatic = true
         //extraStaticLibDir = "${project.projectDir}/xx"
         //excludeStaticLibs.add("**/libmylib.a")
@@ -41,7 +42,8 @@ nativeBundle plugin is a gradle plugin that extend  *bundle* task provided by an
             dimension "default"
             nativeBundleExport {
                 headerDir = "${project.projectDir}/src/main/jni/include"
-                //excludeHeaderFiles.add("**/**.cpp")
+                //excludeHeaderFilter.add("**/**.cpp")
+                //includeHeaderFilter.add("**/**.h")
                 //bundleStatic = true
                 //extraStaticLibDir = "${project.projectDir}/xx"
                 //excludeStaticLibs.add("**/libmylib.a")
@@ -53,7 +55,8 @@ nativeBundle plugin is a gradle plugin that extend  *bundle* task provided by an
 ##### 4.Because publish more than one static library will cause *link order* problem, so you can specify link order, for example libxx.a should link before libyy.a, like this:
     nativeBundleExport {
         headerDir = "${project.projectDir}/src/main/jni/include"
-        //excludeHeaderFiles.add("**/**.cpp")
+        //excludeHeaderFilter.add("**/**.cpp")
+        //includeHeaderFilter.add("**/**.h")
         bundleStatic = true
         //extraStaticLibDir = "${project.projectDir}/xx"
         //excludeStaticLibs.add("**/libmylib.a")
