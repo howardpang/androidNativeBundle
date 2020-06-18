@@ -24,6 +24,7 @@ class NativeBundleExportExtension {
     String headerDir
     boolean bundleStatic
     String extraStaticLibDir
+    Set<String> excludeHeaderFiles = []
     Set<String> excludeStaticLibs = []
     String linkOrder
 }

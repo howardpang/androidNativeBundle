@@ -1,6 +1,6 @@
 ## NativeBundle
 nativeBundle plugin is a gradle plugin that extend  *bundle* task provided by android gradle plugin,it can help you publish c/c++ headers and other module that contain native source can dependent those module directly
-- android gradle plugin 3.0.0 - 3.5.0
+- android gradle plugin 3.0.0 - 4.0.0
 
 ## Build and Test
 1.Android studio import this project  
@@ -17,7 +17,7 @@ nativeBundle plugin is a gradle plugin that extend  *bundle* task provided by an
         dependencies {
             classpath 'com.android.tools.build:gradle:3.0.0'
             //Add nativeBundle dependency
-            classpath 'com.ydq.android.gradle.build.tool:nativeBundle:1.0.4'
+            classpath 'com.ydq.android.gradle.build.tool:nativeBundle:1.0.5'
         }
     }
 ### 2. Export header to aar
@@ -27,6 +27,7 @@ nativeBundle plugin is a gradle plugin that extend  *bundle* task provided by an
 ##### 2. Specify header path that you want to export, add following code segment to your lib *build.gradle*;
     nativeBundleExport {
         headerDir = "${project.projectDir}/src/main/jni/include"
+        //excludeHeaderFiles.add("**/**.cpp")
         //bundleStatic = true
         //extraStaticLibDir = "${project.projectDir}/xx"
         //excludeStaticLibs.add("**/libmylib.a")
@@ -40,6 +41,7 @@ nativeBundle plugin is a gradle plugin that extend  *bundle* task provided by an
             dimension "default"
             nativeBundleExport {
                 headerDir = "${project.projectDir}/src/main/jni/include"
+                //excludeHeaderFiles.add("**/**.cpp")
                 //bundleStatic = true
                 //extraStaticLibDir = "${project.projectDir}/xx"
                 //excludeStaticLibs.add("**/libmylib.a")
@@ -51,6 +53,7 @@ nativeBundle plugin is a gradle plugin that extend  *bundle* task provided by an
 ##### 4.Because publish more than one static library will cause *link order* problem, so you can specify link order, for example libxx.a should link before libyy.a, like this:
     nativeBundleExport {
         headerDir = "${project.projectDir}/src/main/jni/include"
+        //excludeHeaderFiles.add("**/**.cpp")
         bundleStatic = true
         //extraStaticLibDir = "${project.projectDir}/xx"
         //excludeStaticLibs.add("**/libmylib.a")
