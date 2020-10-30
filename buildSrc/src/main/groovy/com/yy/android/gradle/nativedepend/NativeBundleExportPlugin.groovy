@@ -94,12 +94,7 @@ class NativeBundleExportPlugin implements Plugin<Project> {
                         into "${bundleStaticOutputDir}/jni"
                     }
 
-                    def nativeBuildConfigurationsJsons
-                    if(et.hasProperty("nativeBuildConfigurationsJsons")) {
-                        nativeBuildConfigurationsJsons = et.nativeBuildConfigurationsJsons
-                    }else {
-                        nativeBuildConfigurationsJsons = variant.variantData.scope.getTaskContainer().externalNativeJsonGenerator.get().nativeBuildConfigurationsJsons
-                    }
+                    def nativeBuildConfigurationsJsons = GradleApiAdapter.getNativeBuildConfigurationsJson(et, variant);
 
                     nativeBuildConfigurationsJsons.each { File js ->
                         project.copy {

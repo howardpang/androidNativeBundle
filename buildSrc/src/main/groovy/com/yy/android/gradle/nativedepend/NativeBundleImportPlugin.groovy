@@ -199,7 +199,7 @@ class NativeBundleImportPlugin implements Plugin<Project> {
         */
 
         //gather 'aar' native info
-        ArtifactCollection aars = variant.variantData.scope.getArtifactCollection(ConsumedConfigType.COMPILE_CLASSPATH, ArtifactScope.EXTERNAL, ArtifactType.EXPLODED_AAR)
+        ArtifactCollection aars = GradleApiAdapter.getArtifactCollection(variant, ConsumedConfigType.COMPILE_CLASSPATH, ArtifactScope.EXTERNAL, ArtifactType.EXPLODED_AAR)
         aars.artifacts.each { aar ->
             File aarDir = aar.file
             File includeDir = new File(aarDir, "jni/include")

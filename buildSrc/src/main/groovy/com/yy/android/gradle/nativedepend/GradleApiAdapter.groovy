@@ -18,7 +18,11 @@ package com.yy.android.gradle.nativedepend
 import com.android.build.gradle.internal.api.ApplicationVariantImpl
 import com.android.build.gradle.internal.api.LibraryVariantImpl
 import com.android.build.gradle.internal.pipeline.TransformTask
+import com.android.build.gradle.internal.publishing.AndroidArtifacts.ArtifactScope
+import com.android.build.gradle.internal.publishing.AndroidArtifacts.ArtifactType
+import com.android.build.gradle.internal.publishing.AndroidArtifacts.ConsumedConfigType
 import org.gradle.api.Project
+import org.gradle.api.artifacts.ArtifactCollection
 import org.gradle.util.VersionNumber
 import org.gradle.api.Task
 import java.lang.reflect.Field
@@ -58,6 +62,26 @@ class GradleApiAdapter {
             task = variant.packageLibrary
         }
         return task
+    }
+
+    static def getNativeBuildConfigurationsJson(def externalNativeBuildTask, LibraryVariantImpl variant) {
+        def nativeBuildConfigurationsJson
+        if (isGradleVersionGreaterOrEqualTo("3.5.0")) {
+            nativeBuildConfigurationsJson = variant.variantData.getTaskContainer().externalNativeJsonGenerator.get().nativeBuildConfigurationsJsons
+        }else {
+            nativeBuildConfigurationsJson = externalNativeBuildTask.nativeBuildConfigurationsJsons
+        }
+        return nativeBuildConfigurationsJson
+    }
+
+    static  ArtifactCollection getArtifactCollection(def variant, ConsumedConfigType type, ArtifactScope scope, ArtifactType artifactType) {
+        ArtifactCollection artifactCollection
+        if (isGradleVersionGreaterOrEqualTo("4.1.0")) {
+            artifactCollection = variant.variantData.variantDependencies.getArtifactCollection(type, scope, artifactType)
+        }else {
+            artifactCollection = variant.variantData.scope.getArtifactCollection(type, scope, artifactType)
+        }
+        return artifactCollection
     }
 
     static Task getPackageApplicationTask(ApplicationVariantImpl variant) {
