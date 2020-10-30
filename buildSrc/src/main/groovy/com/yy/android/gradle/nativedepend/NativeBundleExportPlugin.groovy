@@ -24,11 +24,12 @@ import org.gradle.api.tasks.bundling.Jar
 import org.gradle.api.file.CopySpec
 import org.gradle.api.Action
 import com.android.build.gradle.internal.api.LibraryVariantImpl
+import java.time.format.DateTimeFormatter;
+import java.time.LocalDateTime;
 
 class NativeBundleExportPlugin implements Plugin<Project> {
 
     protected Project project
-    public final static String LINK_ORDER_TXT_FILE_NAME = "jni/link_order.txt"
 
     void apply(Project project) {
         this.project = project
@@ -55,7 +56,10 @@ class NativeBundleExportPlugin implements Plugin<Project> {
         String taskNameSuffix = variantName.capitalize()
         File bundleStaticOutputDir = new File("${project.buildDir}/intermediates/bundlesStatic/${variantName}")
 
-        File linkOrderFile = new File("${project.buildDir}/intermediates/linkOrder/${variantName}/", LINK_ORDER_TXT_FILE_NAME)
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+        LocalDateTime now = LocalDateTime.now();
+
+        File linkOrderFile = new File("${project.buildDir}/intermediates/linkOrder/${variantName}/", "${project.name}_${dtf.format((now))}_link_order.txt")
         if (config.headerDir != null) {
             bundleTask.from(new File(config.headerDir)) {
                 exclude config.excludeHeaderFilter
@@ -65,6 +69,7 @@ class NativeBundleExportPlugin implements Plugin<Project> {
         }
         bundleTask.from(linkOrderFile, new CopyAction("jni"))
         bundleTask.doFirst {
+            linkOrderFile.parentFile.deleteDir()
             createLinkOrderTxt(config.linkOrder, linkOrderFile)
         }
 

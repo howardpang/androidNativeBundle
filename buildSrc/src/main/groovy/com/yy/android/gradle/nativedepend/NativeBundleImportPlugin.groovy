@@ -205,8 +205,8 @@ class NativeBundleImportPlugin implements Plugin<Project> {
             File includeDir = new File(aarDir, "jni/include")
             if (includeDir.exists()) {
                 String[] linkOrder
-                File linkOrderFile = new File(aarDir, NativeBundleExportPlugin.LINK_ORDER_TXT_FILE_NAME)
-                if (linkOrderFile.exists()) {
+                File linkOrderFile = new File(aarDir, "jni").listFiles().find { it.name.endsWith("_link_order.txt") }
+                if (linkOrderFile != null ) {
                     linkOrder = linkOrderFile.readLines().get(0).split(":")
                 }
 
