@@ -1,4 +1,11 @@
 apply plugin: 'groovy'
+apply plugin: 'java'
+
+javadoc {
+    source = sourceSets.main.allJava
+    classpath = configurations.compile
+}
+
 repositories {
     jcenter()
     google()
@@ -28,3 +35,4 @@ tasks.withType(GroovyCompile) {
     targetCompatibility = '1.7'
 }
 
+compileGroovy.finalizedBy groovydoc

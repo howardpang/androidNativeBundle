@@ -1,21 +1,21 @@
 apply plugin: 'maven'
 apply plugin: 'maven-publish'
-apply plugin: 'com.jfrog.bintray'
+apply from: 'publish_lib.gradle'
 
 ext {
     bintrayRepo = 'gradle-plugins'
-    bintrayName = 'nativeBundle'
+    bintrayName = 'androidNativeBundle'
 
-    publishedGroupId = 'com.ydq.android.gradle.build.tool'
-    libraryName = 'NativeBundle'
-    artifact = 'nativeBundle'
+    publishedGroupId = 'io.github.howardpang'
+    libraryName = 'androidNativeBundle'
+    artifact = 'androidNativeBundle'
 
     libraryDescription = 'A gradle plugin that support publish c/c++ headers to \'aar\' and depend those \'aar\'.'
 
     siteUrl = 'https://github.com/howardpang/androidNativeBundle'
     gitUrl = 'https://github.com/howardpang/androidNativeBundle'
 
-    libraryVersion = '1.0.0'
+    libraryVersion = version
 
     developerId = 'howard'
     developerName = 'Howard Pang'
@@ -26,11 +26,14 @@ ext {
     allLicenses = ["Apache-2.0"]
 }
 
-group = 'com.ydq.android.gradle.build.tool'
-
 task srcJar(type: Jar) {
-    classifier 'sources'
+    archiveClassifier = 'sources'
     from new File("${rootDir}/buildSrc/src")
+}
+
+task javadocJar(type: Jar) {
+    archiveClassifier = 'javadoc'
+    from 'buildSrc/build/docs/javadoc'
 }
 
 publishing {
@@ -40,12 +43,14 @@ publishing {
             File jar = new File(projectDir, "buildSrc/build/libs/buildSrc.jar")
             artifact jar
             artifact srcJar
-            artifactId "nativeBundle"
+            artifact javadocJar
+            artifactId "androidNativeBundle"
             groupId publishedGroupId
+            description libraryDescription
 
             pom.withXml {
                 def root = asNode()
-                root.appendNode('name', 'Native bundle')
+                root.appendNode('name', 'android native bundle')
                 root.appendNode('url', gitUrl)
                 root.appendNode('description', libraryDescription)
 
@@ -65,6 +70,16 @@ publishing {
                 nabil.appendNode('email', developerEmail)
             }
         }
+    }
+}
+
+Properties properties = new Properties()
+properties.load(project.rootProject.file('local.properties').newDataInputStream())
+if (properties.getProperty('signing.password') != null) {
+    signing {
+        def signingPassword = properties.getProperty('signing.password')
+        useInMemoryPgpKeys(new FileInputStream("${rootDir}/private.pgp").text, signingPassword)
+        sign publishing.publications.mavenJar
     }
 }
 
@@ -92,28 +107,3 @@ project.tasks.whenObjectAdded { Task t->
     }
 }
 
-Properties properties = new Properties()
-properties.load(project.rootProject.file('local.properties').newDataInputStream())
-
-bintray {
-    user = properties.getProperty("bintray.user")
-    key = properties.getProperty("bintray.apikey")
-    publications = ['mavenJar']
-    pkg {
-        repo = bintrayRepo
-        name = bintrayName
-        desc = libraryDescription
-        websiteUrl = siteUrl
-        vcsUrl = gitUrl
-        licenses = allLicenses
-        dryRun = false
-        publish = true
-        publicDownloadNumbers = true
-        version {
-            desc = libraryDescription
-        }
-    }
-}
-
-bintrayUpload.dependsOn 'generatePomFileForMavenJarPublication'
-bintrayUpload.dependsOn srcJar

@@ -8,16 +8,16 @@ nativeBundle plugin is a gradle plugin that extend  *bundle* task provided by an
 3.Open *settings.gradle*, include 'app' project and build it  
 
 ## Usage
-### 1.Edit your root *build.gradle* file, add  *classpath 'com.ydq.android.gradle.build.tool:nativeBundle:1.0.7'* to the file
+### 1.Edit your root *build.gradle* file, add  *classpath 'io.github.howardpang:androidNativeBundle:1.0.8'* to the file
     buildscript {
         repositories {
-            jcenter()
             google()
+            mavenCentral()
         }
         dependencies {
             classpath 'com.android.tools.build:gradle:3.0.0'
-            //Add nativeBundle dependency
-            classpath 'com.ydq.android.gradle.build.tool:nativeBundle:1.0.7'
+            //Add androidNativeBundle dependency
+            classpath "io.github.howardpang:androidNativeBundle:1.0.8"
         }
     }
 ### 2. Export header to aar
