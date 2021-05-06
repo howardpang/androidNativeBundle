@@ -78,7 +78,7 @@ class NativeBundleImportPlugin implements Plugin<Project> {
                 hookVariant(variant, gradleMk, intermediatesDir)
             }
         }
-        project.tasks.getByName("preBuild").doFirst {
+        project.tasks.getByName("clean").doLast {
             // clean task will delete the files, so we should recreate
             if (!intermediatesDir.exists()) {
                 intermediatesDir.mkdirs()
