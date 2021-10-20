@@ -66,12 +66,28 @@ class GradleApiAdapter {
 
     static def getNativeBuildConfigurationsJson(def externalNativeBuildTask, LibraryVariantImpl variant) {
         def nativeBuildConfigurationsJson
-        if (isGradleVersionGreaterOrEqualTo("3.5.0")) {
+        if (isGradleVersionGreaterOrEqualTo("7.0.0")) {
+            nativeBuildConfigurationsJson = [ ]
+            variant.variantData.getTaskContainer().cxxConfigurationModel.variant.validAbiList.each {
+                File json = new File(variant.variantData.getTaskContainer().cxxConfigurationModel.variant.cxxBuildFolder, "${it.getTag()}/android_gralde_build.json")
+                nativeBuildConfigurationsJson.add(json)
+            }
+        } else if (isGradleVersionGreaterOrEqualTo("3.5.0")) {
             nativeBuildConfigurationsJson = variant.variantData.getTaskContainer().externalNativeJsonGenerator.get().nativeBuildConfigurationsJsons
         }else {
             nativeBuildConfigurationsJson = externalNativeBuildTask.nativeBuildConfigurationsJsons
         }
         return nativeBuildConfigurationsJson
+    }
+
+    static def getExternalNativeBuildOptions(def variant) {
+        def externalNativeBuildOptions
+        if (isGradleVersionGreaterOrEqualTo("4.0.0")) {
+            externalNativeBuildOptions = variant.variantData.variantDslInfo.externalNativeBuildOptions
+        }else {
+            externalNativeBuildOptions = variant.variantData.variantConfiguration.externalNativeBuildOptions
+        }
+        return externalNativeBuildOptions
     }
 
     static  ArtifactCollection getArtifactCollection(def variant, ConsumedConfigType type, ArtifactScope scope, ArtifactType artifactType) {
