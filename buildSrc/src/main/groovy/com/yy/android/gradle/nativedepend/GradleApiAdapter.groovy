@@ -21,9 +21,12 @@ import com.android.build.gradle.internal.pipeline.TransformTask
 import com.android.build.gradle.internal.publishing.AndroidArtifacts.ArtifactScope
 import com.android.build.gradle.internal.publishing.AndroidArtifacts.ArtifactType
 import com.android.build.gradle.internal.publishing.AndroidArtifacts.ConsumedConfigType
+import com.android.build.gradle.tasks.ExternalNativeBuildJsonTask
+import com.android.build.gradle.tasks.NativeBuildSystem
 import org.gradle.api.Project
 import org.gradle.api.artifacts.ArtifactCollection
 import org.gradle.util.VersionNumber
+import com.android.build.gradle.internal.dsl.CoreExternalNativeBuildOptions;
 import org.gradle.api.Task
 import java.lang.reflect.Field
 
@@ -80,14 +83,36 @@ class GradleApiAdapter {
         return nativeBuildConfigurationsJson
     }
 
-    static def getExternalNativeBuildOptions(def variant) {
-        def externalNativeBuildOptions
-        if (isGradleVersionGreaterOrEqualTo("4.0.0")) {
-            externalNativeBuildOptions = variant.variantData.variantDslInfo.externalNativeBuildOptions
+    static void addArgumentToNativeBuildOption(Project project, def variant, String ndkArgument, String cmakeArgument) {
+        if (isGradleVersionGreaterOrEqualTo("7.0.0")) {
+            // For configure, see 'com.android.build.gradle.internal.cxx.gradle.generator.CxxConfigurationModel' for detail
+            variant.variantData.getTaskContainer().cxxConfigurationModel.activeAbis.each {
+                if (it.variant.module.buildSystem == NativeBuildSystem.CMAKE) {
+                    it.configurationArguments.add(cmakeArgument)
+                }else {
+                    it.configurationArguments.add(ndkArgument)
+                }
+            }
+
+            // For build
+            project.tasks.withType(ExternalNativeBuildJsonTask.class).find {
+                it.configurationModel.variant.variantName == variant.name
+            }.configurationModel.activeAbis.each {
+                if (it.variant.module.buildSystem == NativeBuildSystem.CMAKE) {
+                    it.configurationArguments.add(cmakeArgument)
+                }else {
+                    it.configurationArguments.add(ndkArgument)
+                }
+            }
+        } else if (isGradleVersionGreaterOrEqualTo("4.0.0")) {
+            CoreExternalNativeBuildOptions externalNativeBuildOptions = variant.variantData.variantDslInfo.externalNativeBuildOptions
+            externalNativeBuildOptions.externalNativeNdkBuildOptions.arguments.add(ndkArgument)
+            externalNativeBuildOptions.externalNativeCmakeOptions.arguments.add(cmakeArgument)
         }else {
-            externalNativeBuildOptions = variant.variantData.variantConfiguration.externalNativeBuildOptions
+            CoreExternalNativeBuildOptions externalNativeBuildOptions = variant.variantData.variantConfiguration.externalNativeBuildOptions
+            externalNativeBuildOptions.externalNativeNdkBuildOptions.arguments.add(ndkArgument)
+            externalNativeBuildOptions.externalNativeCmakeOptions.arguments.add(cmakeArgument)
         }
-        return externalNativeBuildOptions
     }
 
     static  ArtifactCollection getArtifactCollection(def variant, ConsumedConfigType type, ArtifactScope scope, ArtifactType artifactType) {

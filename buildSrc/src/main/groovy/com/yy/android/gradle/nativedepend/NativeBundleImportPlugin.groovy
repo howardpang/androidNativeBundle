@@ -40,27 +40,17 @@ import com.yy.android.gradle.nativedepend.util.DependenciesUtils
 class NativeBundleImportPlugin implements Plugin<Project> {
 
     private static final String[] APP_ABIS = ["armeabi", "armeabi-v7a", "x86", "mips", "arm64-v8a", "x86_64", "mips64"]
+    private static String intermediatesDirName = "nativeLib"
     protected Project project
 
     void apply(Project project) {
         this.project = project
         createExtension()
-        File intermediatesDir = new File(project.buildDir, "nativeLib")
+        File intermediatesDir = new File(project.buildDir, intermediatesDirName)
         File gradleMk = new File(intermediatesDir, "gradle.mk")
-        nativeBundle.ANDROID_GRADLE_NATIVE_BUNDLE_PLUGIN_MK = gradleMk
+        defaultNativeBundle.ANDROID_GRADLE_NATIVE_BUNDLE_PLUGIN_MK = gradleMk
         if (!gradleMk.parentFile.exists()) gradleMk.parentFile.mkdirs()
         gradleMk.createNewFile()
-
-        android.defaultConfig.externalNativeBuild.ndkBuild.arguments("ANDROID_GRADLE_NATIVE_BUNDLE_PLUGIN_MK=${gradleMk.path.replace("\\", "/")}")
-        android.defaultConfig.externalNativeBuild.cmake.arguments("-DANDROID_GRADLE_NATIVE_BUNDLE_PLUGIN_MK=${gradleMk.path.replace("\\", "/")}")
-        android.productFlavors.whenObjectAdded {
-            gradleMk = new File(intermediatesDir, "${it.name}/gradle.mk")
-            it.nativeBundleImport.ANDROID_GRADLE_NATIVE_BUNDLE_PLUGIN_MK = gradleMk
-            if (!gradleMk.parentFile.exists()) gradleMk.parentFile.mkdirs()
-            gradleMk.createNewFile()
-            it.externalNativeBuild.ndkBuild.arguments("ANDROID_GRADLE_NATIVE_BUNDLE_PLUGIN_MK=${gradleMk.path.replace("\\", "/")}")
-            it.externalNativeBuild.cmake.arguments("-DANDROID_GRADLE_NATIVE_BUNDLE_PLUGIN_MK=${gradleMk.path.replace("\\", "/")}")
-        }
 
         def variants
         if (android.class.name.find("com.android.build.gradle.AppExtension") != null ||
@@ -73,9 +63,25 @@ class NativeBundleImportPlugin implements Plugin<Project> {
             return
         }
 
+        variants.whenObjectAdded { variant ->
+            String gradleMkPath
+            if (!variant.flavorName.isEmpty()) {
+                gradleMkPath = "${variant.flavorName}/${variant.buildType.name}/gradle.mk"
+            }else {
+                gradleMkPath = "${variant.buildType.name}/gradle.mk"
+            }
+
+            gradleMk = new File(intermediatesDir, gradleMkPath)
+            if (!gradleMk.parentFile.exists()) gradleMk.parentFile.mkdirs()
+            gradleMk.createNewFile()
+            String ndkDefine = "ANDROID_GRADLE_NATIVE_BUNDLE_PLUGIN_MK=${gradleMk.path.replace("\\", "/")}"
+            String cmakeDefine = "-DANDROID_GRADLE_NATIVE_BUNDLE_PLUGIN_MK=${gradleMk.path.replace("\\", "/")}"
+            GradleApiAdapter.addArgumentToNativeBuildOption(project, variant, ndkDefine, cmakeDefine)
+        }
+
         project.afterEvaluate {
             variants.all { variant ->
-                hookVariant(variant, gradleMk, intermediatesDir)
+                hookVariant(variant)
             }
         }
         project.tasks.getByName("clean").doLast {
@@ -84,36 +90,43 @@ class NativeBundleImportPlugin implements Plugin<Project> {
                 intermediatesDir.mkdirs()
                 println(":${project.name}:re pull native bundle file")
                 variants.each { variant ->
-                    hookVariant(variant, gradleMk, intermediatesDir)
+                    hookVariant(variant)
                 }
             }
         }
     }
 
-    private void hookVariant(def variant, File gradleMk, File intermediatesDir) {
+    private void hookVariant(def variant) {
         Map<String, List<File>> linkLibs = [:]
         Set<String> wholeStaticLibs = []
         Set<File> includeDirs = []
         Map<File, File> nativeLibs = [:]
         Map<File, File> sos = [:]
         Map<File, File> hars = [:]
-        Set<String> excludeDependenciesList
+        Set<String> excludeDependenciesList = []
         Set<Map> excludeDependencies = []
+        String wholeStaticLibsStr = defaultNativeBundle.wholeStaticLibs
+        excludeDependenciesList.addAll(defaultNativeBundle.excludeDependencies)
 
-        String flavorDir = ""
-        gradleMk = nativeBundle.ANDROID_GRADLE_NATIVE_BUNDLE_PLUGIN_MK
-        String wholeStaticLibsStr = nativeBundle.wholeStaticLibs
-        excludeDependenciesList = nativeBundle.excludeDependencies
-
+        String varIntermediatesDirPath
         if (!variant.flavorName.isEmpty()) {
-            flavorDir = "${variant.flavorName}/"
-            gradleMk = android.productFlavors.getByName(variant.flavorName).nativeBundleImport.ANDROID_GRADLE_NATIVE_BUNDLE_PLUGIN_MK
-            wholeStaticLibsStr = android.productFlavors.getByName(variant.flavorName).nativeBundleImport.wholeStaticLibs
-            excludeDependenciesList = android.productFlavors.getByName(variant.flavorName).nativeBundleImport.excludeDependencies
+            varIntermediatesDirPath = "${intermediatesDirName}/${variant.flavorName}/${variant.buildType.name}"
+        }else {
+            varIntermediatesDirPath = "${intermediatesDirName}/${variant.buildType.name}"
         }
+        File varIntermediatesDir = new File(project.buildDir, varIntermediatesDirPath)
+        File gradleMk = new File(varIntermediatesDir, "gradle.mk")
         if (wholeStaticLibsStr != null) {
             wholeStaticLibs.addAll(wholeStaticLibsStr.split(":"))
         }
+        variant.getProductFlavors().each {
+            wholeStaticLibsStr = it.nativeBundleImport.wholeStaticLibs
+            if (wholeStaticLibsStr != null) {
+                wholeStaticLibs.addAll(wholeStaticLibsStr.split(":"))
+            }
+            excludeDependenciesList.addAll(it.nativeBundleImport.excludeDependencies)
+        }
+
         excludeDependenciesList.each {
             String[] splitResult = it.split(":")
             if (splitResult.length > 1) {
@@ -122,7 +135,6 @@ class NativeBundleImportPlugin implements Plugin<Project> {
         }
         if (!gradleMk.parentFile.exists()) gradleMk.parentFile.mkdirs()
         gradleMk.createNewFile()
-
 
         AndroidSourceSet variantSourceSet =  variant.sourceSets.find {
             it.name == variant.name
@@ -159,7 +171,7 @@ class NativeBundleImportPlugin implements Plugin<Project> {
                 if (lib.classifier != null && APP_ABIS.find { it == lib.classifier } != null) {
                     if (lib.extension == "a" || lib.extension == "so") {
                         haveArchive = true
-                        File dstDir = new File(intermediatesDir, "${flavorDir}${d.moduleGroup}/${d.moduleName}/jni")
+                        File dstDir = new File(varIntermediatesDir, "${d.moduleGroup}/${d.moduleName}/jni")
                         pw.println("# ${lib.file.path}")
                         File libPath = new File(dstDir, "${lib.classifier}/lib${lib.name}.${lib.extension}")
                         sos.put(lib.file, libPath)
@@ -179,7 +191,7 @@ class NativeBundleImportPlugin implements Plugin<Project> {
             }
             if (har != null && haveArchive) {
                 pw.println("# ${har.file.path}")
-                File dstDir = new File(intermediatesDir, "${flavorDir}${d.moduleGroup}/${d.moduleName}/jni")
+                File dstDir = new File(varIntermediatesDir, "${d.moduleGroup}/${d.moduleName}/jni")
                 File includePath = new File(dstDir, "include")
                 hars.put(har.file, includePath)
                 if (!isExclude) {
@@ -205,7 +217,7 @@ class NativeBundleImportPlugin implements Plugin<Project> {
             File includeDir = new File(aarDir, "jni/include")
             if (includeDir.exists()) {
                 String[] linkOrder
-                File linkOrderFile = new File(aarDir, "jni").listFiles().find { it.name.endsWith("_link_order.txt") }
+                File linkOrderFile = new File(aarDir, "jni").listFiles().find { it.name.endsWith("link_order.txt") }
                 if (linkOrderFile != null ) {
                     linkOrder = linkOrderFile.readLines().get(0).split(":")
                 }
@@ -219,7 +231,7 @@ class NativeBundleImportPlugin implements Plugin<Project> {
                 }
                 //Note dstDir should be same for every ndk build, because ndk-build will check the include files whether
                 //modify to increment build
-                File dstDir = new File(intermediatesDir, "${flavorDir}${group}/${name}/jni")
+                File dstDir = new File(varIntermediatesDir, "${group}/${name}/jni")
                 boolean isExclude = (excludeDependencies.find { it.group == group && it.name == name } != null)
                 if (!isExclude) {
                     APP_ABIS.each {
@@ -261,6 +273,12 @@ class NativeBundleImportPlugin implements Plugin<Project> {
             println(":${project.name}:custom ndk build ")
         }
 
+        // Compatibility with last version
+        project.copy {
+            from gradleMk
+            into defaultNativeBundle.ANDROID_GRADLE_NATIVE_BUNDLE_PLUGIN_MK.parentFile
+        }
+
         if (!FileUtils.contentEquals(gradleMk, tmpMkFile)) {
             nativeLibs.each { src, dst ->
                 dst.deleteDir()
@@ -295,6 +313,10 @@ class NativeBundleImportPlugin implements Plugin<Project> {
             }
             // delete externalNativeBuild dir to force gradle recreate then the IDE can parse new native source code
             File externalBuildDir = new File(project.projectDir, ".externalNativeBuild")
+            externalBuildDir.deleteDir()
+            externalBuildDir = new File(project.projectDir, ".cxx")
+            externalBuildDir.deleteDir()
+            externalBuildDir = new File(project.buildDir, ".cxx")
             externalBuildDir.deleteDir()
         }
     }
@@ -402,7 +424,7 @@ class NativeBundleImportPlugin implements Plugin<Project> {
         }
     }
 
-    protected NativeBundleImportExtension getNativeBundle() {
+    protected NativeBundleImportExtension getDefaultNativeBundle() {
         return (NativeBundleImportExtension) project.nativeBundleImport
     }
 

@@ -3,7 +3,7 @@ apply plugin: 'java'
 
 javadoc {
     source = sourceSets.main.allJava
-    classpath = configurations.compile
+    classpath = configurations.implementation
 }
 
 repositories {
@@ -12,8 +12,8 @@ repositories {
 }
 
 dependencies {
-    compile gradleApi()
-    compile localGroovy()
+    implementation gradleApi()
+    implementation localGroovy()
 }
 
 configurations {
@@ -27,7 +27,8 @@ sourceSets {
 }
 
 dependencies {
-    compile 'com.android.tools.build:gradle:3.0.0'
+    implementation 'com.android.tools.build:gradle:3.0.0'
+    //implementation 'commons-io:commons-io:2.4'
 }
 
 tasks.withType(GroovyCompile) {

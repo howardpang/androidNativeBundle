@@ -41,17 +41,17 @@ class NativeBundleExportPlugin implements Plugin<Project> {
 
         def variants = android.libraryVariants
         variants.whenObjectAdded { LibraryVariantImpl variant ->
-            NativeBundleExportExtension config
-            if(variant.flavorName.isEmpty()) {
-                config = nativeBundle
-            }else {
-                config = android.productFlavors.getByName(variant.flavorName).nativeBundleExport
+            List<NativeBundleExportExtension> configs = []
+            for (i in 0..<variant.getProductFlavors().size()) {
+                configs.add(variant.getProductFlavors().get(i).nativeBundleExport)
             }
-            hookBundleTask(GradleApiAdapter.getPackageLibraryTask(variant), variant, config)
+            configs.add(defaultNativeBundle)
+            MergeNativeBundleExportExtension mergeNativeBundleExportExtension = merge(configs)
+            hookBundleTask(GradleApiAdapter.getPackageLibraryTask(variant), variant, mergeNativeBundleExportExtension)
         }
     }
 
-    protected void hookBundleTask(Task bundleTask, LibraryVariantImpl variant, NativeBundleExportExtension config) {
+    protected void hookBundleTask(Task bundleTask, LibraryVariantImpl variant, MergeNativeBundleExportExtension config) {
         String variantName = variant.name
         String taskNameSuffix = variantName.capitalize()
         File bundleStaticOutputDir = new File("${project.buildDir}/intermediates/bundlesStatic/${variantName}")
@@ -60,8 +60,8 @@ class NativeBundleExportPlugin implements Plugin<Project> {
         LocalDateTime now = LocalDateTime.now();
 
         File linkOrderFile = new File("${project.buildDir}/intermediates/linkOrder/${variantName}/", "${project.name}_${dtf.format((now))}_link_order.txt")
-        if (config.headerDir != null) {
-            bundleTask.from(new File(config.headerDir)) {
+        config.headerDirs.each {
+            bundleTask.from(new File(it)) {
                 exclude config.excludeHeaderFilter
                 include config.includeHeaderFilter
                 into "jni/include"
@@ -110,9 +110,9 @@ class NativeBundleExportPlugin implements Plugin<Project> {
                         }
                     }
                 }
-                if (config.extraStaticLibDir != null) {
+                config.extraStaticLibDirs.each { String extraStaticLibDir ->
                     project.copy {
-                        from config.extraStaticLibDir
+                        from extraStaticLibDir
                         include "**/**.a"
                         exclude "**/objs**"
                         exclude config.excludeStaticLibs
@@ -152,7 +152,7 @@ class NativeBundleExportPlugin implements Plugin<Project> {
         }
     }
 
-    protected NativeBundleExportExtension getNativeBundle() {
+    protected NativeBundleExportExtension getDefaultNativeBundle() {
         return (NativeBundleExportExtension) project.nativeBundleExport
     }
 
@@ -169,4 +169,48 @@ class NativeBundleExportPlugin implements Plugin<Project> {
             pw.close()
         }
     }
+
+    MergeNativeBundleExportExtension merge(List<NativeBundleExportExtension> extensions) {
+        if (extensions.empty) {
+            return null
+        }else {
+            MergeNativeBundleExportExtension mergeExtension = new MergeNativeBundleExportExtension()
+            mergeExtension.bundleStatic = extensions.get(0).bundleStatic;
+            extensions.each {
+                if (it.headerDir != null) {
+                    mergeExtension.headerDirs.add(it.headerDir)
+                }
+                if (it.extraStaticLibDir != null) {
+                    mergeExtension.extraStaticLibDirs.addAll(it.extraStaticLibDir)
+                }
+                mergeExtension.excludeHeaderFilter.addAll(it.excludeHeaderFilter)
+                mergeExtension.includeHeaderFilter.addAll(it.includeHeaderFilter)
+                mergeExtension.excludeStaticLibs.addAll(it.excludeStaticLibs)
+                if (mergeExtension.linkOrder == null) {
+                    mergeExtension.linkOrder = it.linkOrder
+                }else {
+                    if (it.linkOrder != null) {
+                        mergeExtension.linkOrder = mergeExtension.linkOrder + ":" + it.linkOrder
+                    }
+                }
+            }
+            return mergeExtension
+        }
+    }
+
+    static class MergeNativeBundleExportExtension {
+        Set<String> headerDirs = []
+        boolean bundleStatic
+        Set<String> extraStaticLibDirs = []
+        Set<String> excludeHeaderFilter = []
+        Set<String> includeHeaderFilter = []
+        Set<String> excludeStaticLibs = []
+        String linkOrder = null
+
+        MergeNativeBundleExportExtension() {
+
+        }
+    }
+
+
 }
