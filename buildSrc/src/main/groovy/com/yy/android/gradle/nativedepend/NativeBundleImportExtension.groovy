@@ -15,6 +15,7 @@
  */
 package com.yy.android.gradle.nativedepend
 
+import com.android.annotations.NonNull
 import org.gradle.api.Project
 
 class NativeBundleImportExtension {
@@ -25,4 +26,13 @@ class NativeBundleImportExtension {
     File ANDROID_GRADLE_NATIVE_BUNDLE_PLUGIN_MK
     String wholeStaticLibs
     Set<String> excludeDependencies = []
+    Set<String> excludeLibs = []
+
+    void excludeLibs(@NonNull String ...excludelibs) {
+        Collections.addAll(this.excludeLibs, excludelibs);
+    }
+
+    void excludeDependencies(@NonNull String ...excludeDependencies) {
+        Collections.addAll(this.excludeDependencies, excludeDependencies);
+    }
 }

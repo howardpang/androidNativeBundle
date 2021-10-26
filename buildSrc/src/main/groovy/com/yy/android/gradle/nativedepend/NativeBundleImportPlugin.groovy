@@ -105,8 +105,16 @@ class NativeBundleImportPlugin implements Plugin<Project> {
         Map<File, File> hars = [:]
         Set<String> excludeDependenciesList = []
         Set<Map> excludeDependencies = []
+        Set<String> excludeLibs = []
         String wholeStaticLibsStr = defaultNativeBundle.wholeStaticLibs
         excludeDependenciesList.addAll(defaultNativeBundle.excludeDependencies)
+        excludeLibs.addAll(defaultNativeBundle.excludeLibs)
+        FilenameFilter excludeLibsFilter = new FilenameFilter() {
+            @Override
+            boolean accept(File dir, String name) {
+                return !excludeLibs.contains(name)
+            }
+        }
 
         String varIntermediatesDirPath
         if (!variant.flavorName.isEmpty()) {
@@ -125,6 +133,7 @@ class NativeBundleImportPlugin implements Plugin<Project> {
                 wholeStaticLibs.addAll(wholeStaticLibsStr.split(":"))
             }
             excludeDependenciesList.addAll(it.nativeBundleImport.excludeDependencies)
+            excludeLibs.addAll(it.nativeBundleImport.excludeLibs)
         }
 
         excludeDependenciesList.each {
@@ -243,7 +252,7 @@ class NativeBundleImportPlugin implements Plugin<Project> {
                                 linkLibs.put(it, archLibs)
                             }
                             List libs = new ArrayList<File>()
-                            libs.addAll(abiDir.listFiles())
+                            libs.addAll(abiDir.listFiles(excludeLibsFilter))
                             if (linkOrder != null) {
                                 linkOrder.each { libName ->
                                     File f = libs.find { libName == it.name }

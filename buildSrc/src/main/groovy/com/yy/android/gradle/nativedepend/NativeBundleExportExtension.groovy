@@ -15,6 +15,7 @@
  */
 package com.yy.android.gradle.nativedepend
 
+import com.android.annotations.NonNull
 import org.gradle.api.Project
 
 class NativeBundleExportExtension {
@@ -28,4 +29,16 @@ class NativeBundleExportExtension {
     Set<String> includeHeaderFilter = []
     Set<String> excludeStaticLibs = []
     String linkOrder
+
+    void excludeHeaderFilter(@NonNull String ...excludeHeaderFilter) {
+        Collections.addAll(this.excludeHeaderFilter, excludeHeaderFilter);
+    }
+
+    void includeHeaderFilter(@NonNull String ...includeHeaderFilter) {
+        Collections.addAll(this.includeHeaderFilter, includeHeaderFilter);
+    }
+
+    void excludeStaticLibs(@NonNull String ...excludeStaticLibs) {
+        Collections.addAll(this.excludeStaticLibs, excludeStaticLibs);
+    }
 }
