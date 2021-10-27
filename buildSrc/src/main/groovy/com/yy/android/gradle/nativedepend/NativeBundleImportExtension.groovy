@@ -27,6 +27,7 @@ class NativeBundleImportExtension {
     String wholeStaticLibs
     Set<String> excludeDependencies = []
     Set<String> excludeLibs = []
+    boolean cacheLibs
 
     void excludeLibs(@NonNull String ...excludelibs) {
         Collections.addAll(this.excludeLibs, excludelibs);

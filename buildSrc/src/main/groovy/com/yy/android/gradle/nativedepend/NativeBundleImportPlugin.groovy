@@ -97,7 +97,7 @@ class NativeBundleImportPlugin implements Plugin<Project> {
     }
 
     private void hookVariant(def variant) {
-        Map<String, List<File>> linkLibs = [:]
+        Map<String, Set<File>> linkLibs = [:]
         Set<String> wholeStaticLibs = []
         Set<File> includeDirs = []
         Map<File, File> nativeLibs = [:]
@@ -106,6 +106,7 @@ class NativeBundleImportPlugin implements Plugin<Project> {
         Set<String> excludeDependenciesList = []
         Set<Map> excludeDependencies = []
         Set<String> excludeLibs = []
+        boolean cacheLibs = defaultNativeBundle.cacheLibs
         String wholeStaticLibsStr = defaultNativeBundle.wholeStaticLibs
         excludeDependenciesList.addAll(defaultNativeBundle.excludeDependencies)
         excludeLibs.addAll(defaultNativeBundle.excludeLibs)
@@ -134,6 +135,7 @@ class NativeBundleImportPlugin implements Plugin<Project> {
             }
             excludeDependenciesList.addAll(it.nativeBundleImport.excludeDependencies)
             excludeLibs.addAll(it.nativeBundleImport.excludeLibs)
+            cacheLibs |= it.nativeBundleImport.cacheLibs
         }
 
         excludeDependenciesList.each {
@@ -246,7 +248,7 @@ class NativeBundleImportPlugin implements Plugin<Project> {
                     APP_ABIS.each {
                         File abiDir = new File(aarDir, "jni/${it}")
                         if (abiDir.exists()) {
-                            List<File> archLibs = linkLibs.get(it)
+                            Set<File> archLibs = linkLibs.get(it)
                             if (archLibs == null) {
                                 archLibs = []
                                 linkLibs.put(it, archLibs)
@@ -265,7 +267,7 @@ class NativeBundleImportPlugin implements Plugin<Project> {
                             archLibs.addAll(libs)
                         }
                     }
-                    includeDirs.add(new File(dstDir, "include"))
+                    includeDirs.add(new File(aarDir, "jni/include"))
                 }
                 nativeLibs.put(includeDir.parentFile, dstDir)
             }
@@ -289,11 +291,13 @@ class NativeBundleImportPlugin implements Plugin<Project> {
         }
 
         if (!FileUtils.contentEquals(gradleMk, tmpMkFile)) {
-            nativeLibs.each { src, dst ->
-                dst.deleteDir()
-                project.copy {
-                    from src
-                    into dst
+            if (cacheLibs) {
+                nativeLibs.each { src, dst ->
+                    dst.deleteDir()
+                    project.copy {
+                        from src
+                        into dst
+                    }
                 }
             }
             sos.each {src, dst ->
@@ -330,7 +334,7 @@ class NativeBundleImportPlugin implements Plugin<Project> {
         }
     }
 
-    protected void generateNdkBuildMk(File mk, Set<File> includeDirs, Map<String, List<File>> linkLibs, Set<String> wholeStaticLibs) {
+    protected void generateNdkBuildMk(File mk, Set<File> includeDirs, Map<String, Set<File>> linkLibs, Set<String> wholeStaticLibs) {
         def pw = new PrintWriter(new FileOutputStream(mk, true))
 
         pw.println("LOCAL_C_INCLUDES += \\")
@@ -344,8 +348,8 @@ class NativeBundleImportPlugin implements Plugin<Project> {
         linkLibs.each { abi, v ->
             //String flag = "LOCAL_LDFLAGS += -Wl,--as-needed "
             String flag = "LOCAL_LDFLAGS += "
-            List<File> normalLib = v
-            List<File> wholeLib = null
+            Set<File> normalLib = v
+            Set<File> wholeLib = null
             if (wholeStaticLibs != null && !wholeStaticLibs.isEmpty()) {
                 wholeLib = []
                 normalLib = []
@@ -377,7 +381,7 @@ class NativeBundleImportPlugin implements Plugin<Project> {
         pw.close()
     }
 
-    protected void generateCMakeBuildMk(File mk, Set<File> includeDirs, Map<String, List<File>> linkLibs, Set<String> wholeStaticLibs) {
+    protected void generateCMakeBuildMk(File mk, Set<File> includeDirs, Map<String, Set<File>> linkLibs, Set<String> wholeStaticLibs) {
         def pw = new PrintWriter(new FileOutputStream(mk, true))
         if (includeDirs.size() > 0) {
             pw.println("include_directories (")
@@ -390,8 +394,8 @@ class NativeBundleImportPlugin implements Plugin<Project> {
         linkLibs.each { k, v ->
             pw.println("if(\${ANDROID_ABI} STREQUAL \"${k}\")")
             pw.print("   set(ANDROID_GRADLE_NATIVE_MODULES ")
-            List<File> normalLib = v
-            List<File> wholeLib = null
+            Set<File> normalLib = v
+            Set<File> wholeLib = null
             if (wholeStaticLibs != null && !wholeStaticLibs.isEmpty()) {
                 wholeLib = []
                 normalLib = []
