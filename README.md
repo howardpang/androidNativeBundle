@@ -1,6 +1,6 @@
 ## NativeBundle
 nativeBundle plugin is a gradle plugin that extend  *bundle* task provided by android gradle plugin,it can help you publish c/c++ headers and other module that contain native source can dependent those module directly
-- android gradle plugin 3.0.0 - 4.1.0
+- android gradle plugin 3.0.0 - 7.0.3
 
 ## Build and Test
 1.Android studio import this project  
@@ -17,7 +17,7 @@ nativeBundle plugin is a gradle plugin that extend  *bundle* task provided by an
         dependencies {
             classpath 'com.android.tools.build:gradle:3.0.0'
             //Add androidNativeBundle dependency
-            classpath "io.github.howardpang:androidNativeBundle:1.0.9"
+            classpath "io.github.howardpang:androidNativeBundle:1.1.0"
         }
     }
 ### 2. Export header to aar
