@@ -36,6 +36,7 @@ import org.gradle.api.attributes.AttributeContainer
 import org.gradle.api.specs.Spec
 import org.gradle.api.file.FileTree
 import com.yy.android.gradle.nativedepend.util.DependenciesUtils
+import com.android.build.gradle.internal.dsl.ProductFlavor
 
 class NativeBundleImportPlugin implements Plugin<Project> {
 
@@ -61,6 +62,18 @@ class NativeBundleImportPlugin implements Plugin<Project> {
         } else {
             println(":${project.name}:Only support android gradle plugin")
             return
+        }
+
+        /*Important!
+        When the flavor's native build configure is the same, the gradle
+        will not generate per build script for per flavor and it will optimize
+        the build speed[AGP 7.0], but in our plugin, whe should need every build script,
+        because native dependency may different in different flavor, so we add
+        dummy flags to native build, so gradle will generate every build script
+         */
+        android.productFlavors.whenObjectAdded { ProductFlavor it ->
+            it.externalNativeBuild.ndkBuild.cFlags("-D${it.name}")
+            it.externalNativeBuild.cmake.cFlags("-D${it.name}")
         }
 
         variants.whenObjectAdded { variant ->
@@ -273,6 +286,7 @@ class NativeBundleImportPlugin implements Plugin<Project> {
             }
         }
 
+        includeDirs.add(tmpMkFile.parentFile)
         if (android.externalNativeBuild.ndkBuild.path != null) {
             generateNdkBuildMk(tmpMkFile, includeDirs, linkLibs, wholeStaticLibs)
             println(":${project.name}:external ndk build ")

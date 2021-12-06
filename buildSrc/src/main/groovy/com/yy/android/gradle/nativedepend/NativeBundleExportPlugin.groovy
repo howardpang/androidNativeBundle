@@ -20,7 +20,6 @@ import org.gradle.api.Plugin
 import org.gradle.api.Task
 import org.gradle.api.file.FileCopyDetails
 import org.gradle.api.file.FileTree
-import org.gradle.api.tasks.bundling.Jar
 import org.gradle.api.file.CopySpec
 import org.gradle.api.Action
 import com.android.build.gradle.internal.api.LibraryVariantImpl
@@ -73,13 +72,7 @@ class NativeBundleExportPlugin implements Plugin<Project> {
             createLinkOrderTxt(config.linkOrder, linkOrderFile)
         }
 
-        Task staticBundleTask = project.task("bundleStaticLib${taskNameSuffix}", type: Jar) {
-            from bundleStaticOutputDir
-            extension 'aar'
-            baseName "${project.name}-static-${variantName}"
-            destinationDir new File(project.buildDir, 'outputs/aar')
-            version ''
-        }
+        Task staticBundleTask = GradleApiAdapter.createBundleStaticTask(project, bundleStaticOutputDir, variantName, "bundleStaticLib${taskNameSuffix}")
         Task staticBundlePrepareTask = project.task("bundleStaticLibPrepare${taskNameSuffix}").doFirst {
             def et = project.tasks.getByName("externalNativeBuild${taskNameSuffix}")
             if (config.bundleStatic) {
