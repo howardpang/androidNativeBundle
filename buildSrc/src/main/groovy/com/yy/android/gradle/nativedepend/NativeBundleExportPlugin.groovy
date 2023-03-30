@@ -74,8 +74,8 @@ class NativeBundleExportPlugin implements Plugin<Project> {
 
         Task staticBundleTask = GradleApiAdapter.createBundleStaticTask(project, bundleStaticOutputDir, variantName, "bundleStaticLib${taskNameSuffix}")
         Task staticBundlePrepareTask = project.task("bundleStaticLibPrepare${taskNameSuffix}").doFirst {
-            def et = project.tasks.getByName("externalNativeBuild${taskNameSuffix}")
             if (config.bundleStatic) {
+                def et = project.tasks.getByName("externalNativeBuild${taskNameSuffix}")
                 if (bundleStaticOutputDir.exists()) bundleStaticOutputDir.deleteDir()
                 FileTree aar = project.zipTree(bundleTask.archivePath)
                 project.copy {
@@ -84,8 +84,9 @@ class NativeBundleExportPlugin implements Plugin<Project> {
                     into bundleStaticOutputDir
                 }
                 if (et != null) {
+                    def objDir = GradleApiAdapter.getExternalNativeBuildObjDir(et)
                     project.copy {
-                        from et.getObjFolder()
+                        from objDir
                         include "**/**.a"
                         exclude "**/objs**"
                         exclude config.excludeStaticLibs

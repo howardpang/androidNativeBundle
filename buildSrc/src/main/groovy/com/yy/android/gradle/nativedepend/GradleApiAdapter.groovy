@@ -154,7 +154,9 @@ class GradleApiAdapter {
 
     static  ArtifactCollection getArtifactCollection(def variant, ConsumedConfigType type, ArtifactScope scope, ArtifactType artifactType) {
         ArtifactCollection artifactCollection
-        if (isAndroidGradleVersionGreaterOrEqualTo("4.1.0")) {
+        if (isAndroidGradleVersionGreaterOrEqualTo("7.4.0")) {
+            artifactCollection = variant.component.getVariantDependencies().getArtifactCollection(type, scope, artifactType)
+        } else if (isAndroidGradleVersionGreaterOrEqualTo("4.1.0")) {
             artifactCollection = variant.variantData.variantDependencies.getArtifactCollection(type, scope, artifactType)
         }else {
             artifactCollection = variant.variantData.scope.getArtifactCollection(type, scope, artifactType)
@@ -227,5 +229,18 @@ class GradleApiAdapter {
             }
         }
         return staticBundleTask
+    }
+
+    static def getExternalNativeBuildObjDir(Task externalNativeBuildTask) {
+        def objDir = null
+        if (externalNativeBuildTask == null) {
+            return objDir
+        }
+        if (isAndroidGradleVersionGreaterOrEqualTo("7.2.0")) {
+            objDir = externalNativeBuildTask.getObjFolder().dir("obj/local")
+        } else {
+            objDir = externalNativeBuildTask.getObjFolder()
+        }
+        return objDir
     }
 }
