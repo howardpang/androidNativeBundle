@@ -17,7 +17,6 @@ package com.yy.android.gradle.nativedepend
 
 import com.android.build.gradle.internal.api.ApplicationVariantImpl
 import com.android.build.gradle.internal.api.LibraryVariantImpl
-import com.android.build.gradle.internal.pipeline.TransformTask
 import com.android.build.gradle.internal.publishing.AndroidArtifacts.ArtifactScope
 import com.android.build.gradle.internal.publishing.AndroidArtifacts.ArtifactType
 import com.android.build.gradle.internal.publishing.AndroidArtifacts.ConsumedConfigType
@@ -48,7 +47,7 @@ class GradleApiAdapter {
                 jniFolders.add(mergeNativeLibsTask.outputDir.getAsFile().get())
             }
         }else {
-            Task mergeJniLibsTask = project.tasks.withType(TransformTask.class).find {
+            Task mergeJniLibsTask = project.tasks.withType(Class.forName("com.android.build.gradle.internal.pipeline.TransformTask")).find {
                 it.transform.name == 'mergeJniLibs' && it.variantName == variant.name
             }
             if (mergeJniLibsTask != null) {
@@ -70,7 +69,15 @@ class GradleApiAdapter {
 
     static def getNativeBuildConfigurationsJson(def externalNativeBuildTask, LibraryVariantImpl variant) {
         def nativeBuildConfigurationsJson
-        if (isAndroidGradleVersionGreaterOrEqualTo("7.1.0")) {
+        if (isAndroidGradleVersionGreaterOrEqualTo("8.0.0")) {
+            nativeBuildConfigurationsJson = [ ]
+            variant.variantData.getTaskContainer().cxxConfigurationModel.activeAbis.each {
+                File json = new File(it.soFolder, "/android_gralde_build.json")
+                nativeBuildConfigurationsJson.add(json)
+                json = new File(it.cxxBuildFolder, "/android_gralde_build.json")
+                nativeBuildConfigurationsJson.add(json)
+            }
+        } else if (isAndroidGradleVersionGreaterOrEqualTo("7.1.0")) {
             nativeBuildConfigurationsJson = [ ]
             variant.variantData.getTaskContainer().cxxConfigurationModel.activeAbis.each {
                 File json = new File(it.cxxBuildFolder, "/android_gralde_build.json")
@@ -236,7 +243,9 @@ class GradleApiAdapter {
         if (externalNativeBuildTask == null) {
             return objDir
         }
-        if (isAndroidGradleVersionGreaterOrEqualTo("7.2.0")) {
+        if (isAndroidGradleVersionGreaterOrEqualTo("8.0.0")) {
+            objDir = externalNativeBuildTask.soFolder.get()
+        } else if (isAndroidGradleVersionGreaterOrEqualTo("7.2.0")) {
             objDir = externalNativeBuildTask.getObjFolder().dir("obj/local")
         } else {
             objDir = externalNativeBuildTask.getObjFolder()
