@@ -65,15 +65,19 @@ class NativeBundleImportPlugin implements Plugin<Project> {
         }
 
         /*Important!
-        When the flavor's native build configure is the same, the gradle
-        will not generate per build script for per flavor and it will optimize
+        When the flavor's/buildType native build configure is the same, the gradle
+        will not generate per build script for per flavor/buildType and it will optimize
         the build speed[AGP 7.0], but in our plugin, whe should need every build script,
-        because native dependency may different in different flavor, so we add
+        because native dependency may different in different flavor/buildType, so we add
         dummy flags to native build, so gradle will generate every build script
          */
         android.productFlavors.whenObjectAdded { ProductFlavor it ->
-            it.externalNativeBuild.ndkBuild.cFlags("-D${it.name}")
-            it.externalNativeBuild.cmake.cFlags("-D${it.name}")
+            it.externalNativeBuild.ndkBuild.cFlags("-D${it.name.capitalize()}")
+            it.externalNativeBuild.cmake.cFlags("-D${it.name.capitalize()}")
+        }
+        android.buildTypes.each {
+            it.externalNativeBuildOptions.cmake.cFlags("-D${it.name.capitalize()}")
+            it.externalNativeBuildOptions.ndkBuild.cFlags("-D${it.name.capitalize()}")
         }
 
         variants.whenObjectAdded { variant ->
@@ -110,241 +114,245 @@ class NativeBundleImportPlugin implements Plugin<Project> {
     }
 
     private void hookVariant(def variant) {
-        Map<String, Set<File>> linkLibs = [:]
-        Set<String> wholeStaticLibs = []
-        Set<File> includeDirs = []
-        Map<File, File> nativeLibs = [:]
-        Map<File, File> sos = [:]
-        Map<File, File> hars = [:]
-        Set<String> excludeDependenciesList = []
-        Set<Map> excludeDependencies = []
-        Set<String> excludeLibs = []
-        boolean cacheLibs = defaultNativeBundle.cacheLibs
-        String wholeStaticLibsStr = defaultNativeBundle.wholeStaticLibs
-        excludeDependenciesList.addAll(defaultNativeBundle.excludeDependencies)
-        excludeLibs.addAll(defaultNativeBundle.excludeLibs)
-        FilenameFilter excludeLibsFilter = new FilenameFilter() {
-            @Override
-            boolean accept(File dir, String name) {
-                return !excludeLibs.contains(name)
+        try {
+            Map<String, Set<File>> linkLibs = [:]
+            Set<String> wholeStaticLibs = []
+            Set<File> includeDirs = []
+            Map<File, File> nativeLibs = [:]
+            Map<File, File> sos = [:]
+            Map<File, File> hars = [:]
+            Set<String> excludeDependenciesList = []
+            Set<Map> excludeDependencies = []
+            Set<String> excludeLibs = []
+            boolean cacheLibs = defaultNativeBundle.cacheLibs
+            String wholeStaticLibsStr = defaultNativeBundle.wholeStaticLibs
+            excludeDependenciesList.addAll(defaultNativeBundle.excludeDependencies)
+            excludeLibs.addAll(defaultNativeBundle.excludeLibs)
+            FilenameFilter excludeLibsFilter = new FilenameFilter() {
+                @Override
+                boolean accept(File dir, String name) {
+                    return !excludeLibs.contains(name)
+                }
             }
-        }
 
-        String varIntermediatesDirPath
-        if (!variant.flavorName.isEmpty()) {
-            varIntermediatesDirPath = "${intermediatesDirName}/${variant.flavorName}/${variant.buildType.name}"
-        }else {
-            varIntermediatesDirPath = "${intermediatesDirName}/${variant.buildType.name}"
-        }
-        File varIntermediatesDir = new File(project.buildDir, varIntermediatesDirPath)
-        File gradleMk = new File(varIntermediatesDir, "gradle.mk")
-        if (wholeStaticLibsStr != null) {
-            wholeStaticLibs.addAll(wholeStaticLibsStr.split(":"))
-        }
-        variant.getProductFlavors().each {
-            wholeStaticLibsStr = it.nativeBundleImport.wholeStaticLibs
+            String varIntermediatesDirPath
+            if (!variant.flavorName.isEmpty()) {
+                varIntermediatesDirPath = "${intermediatesDirName}/${variant.flavorName}/${variant.buildType.name}"
+            } else {
+                varIntermediatesDirPath = "${intermediatesDirName}/${variant.buildType.name}"
+            }
+            File varIntermediatesDir = new File(project.buildDir, varIntermediatesDirPath)
+            File gradleMk = new File(varIntermediatesDir, "gradle.mk")
             if (wholeStaticLibsStr != null) {
                 wholeStaticLibs.addAll(wholeStaticLibsStr.split(":"))
             }
-            excludeDependenciesList.addAll(it.nativeBundleImport.excludeDependencies)
-            excludeLibs.addAll(it.nativeBundleImport.excludeLibs)
-            cacheLibs |= it.nativeBundleImport.cacheLibs
-        }
-
-        excludeDependenciesList.each {
-            String[] splitResult = it.split(":")
-            if (splitResult.length > 1) {
-                excludeDependencies.add(group:splitResult[0], name:splitResult[1])
-            }
-        }
-        if (!gradleMk.parentFile.exists()) gradleMk.parentFile.mkdirs()
-        gradleMk.createNewFile()
-
-        AndroidSourceSet variantSourceSet =  variant.sourceSets.find {
-            it.name == variant.name
-        }
-
-        File tmpMkFile = new File(gradleMk.parentFile, "tmp.mk")
-        if (!gradleMk.exists()) {
-            tmpMkFile = gradleMk
-        }
-
-        def pw = tmpMkFile.newPrintWriter()
-
-        //gather 'implementation "ggggg:mmmm:vvvvv:armeabi-v7a@har", implementation "ggggg:mmmm:vvvvv:armeabi-v7a@so" ' native info
-        def resolveDependencies = DependenciesUtils.getFirstLevelDependencies(project, "${variant.name}CompileClasspath")
-        Set<DefaultProjectDependency> projectDependencies = []
-        DependenciesUtils.collectProjectDependencies(project, projectDependencies)
-        resolveDependencies.each { d ->
-            if (projectDependencies.find { it.name == d.moduleName } != null) {
-                return
+            variant.getProductFlavors().each {
+                wholeStaticLibsStr = it.nativeBundleImport.wholeStaticLibs
+                if (wholeStaticLibsStr != null) {
+                    wholeStaticLibs.addAll(wholeStaticLibsStr.split(":"))
+                }
+                excludeDependenciesList.addAll(it.nativeBundleImport.excludeDependencies)
+                excludeLibs.addAll(it.nativeBundleImport.excludeLibs)
+                cacheLibs |= it.nativeBundleImport.cacheLibs
             }
 
-            ResolvedArtifact har = null
-            if (d.moduleArtifacts.size() > 1) {
-                har = d.moduleArtifacts.find { a ->
-                    if (a.extension == "har") {
-                        return true
+            excludeDependenciesList.each {
+                String[] splitResult = it.split(":")
+                if (splitResult.length > 1) {
+                    excludeDependencies.add(group: splitResult[0], name: splitResult[1])
+                }
+            }
+            if (!gradleMk.parentFile.exists()) gradleMk.parentFile.mkdirs()
+            gradleMk.createNewFile()
+
+            AndroidSourceSet variantSourceSet = variant.sourceSets.find {
+                it.name == variant.name
+            }
+
+            File tmpMkFile = new File(gradleMk.parentFile, "tmp.mk")
+            if (!gradleMk.exists()) {
+                tmpMkFile = gradleMk
+            }
+
+            def pw = tmpMkFile.newPrintWriter()
+
+            //gather 'implementation "ggggg:mmmm:vvvvv:armeabi-v7a@har", implementation "ggggg:mmmm:vvvvv:armeabi-v7a@so" ' native info
+            def resolveDependencies = DependenciesUtils.getFirstLevelDependencies(project, "${variant.name}CompileClasspath")
+            Set<DefaultProjectDependency> projectDependencies = []
+            DependenciesUtils.collectProjectDependencies(project, projectDependencies)
+            resolveDependencies.each { d ->
+                if (projectDependencies.find { it.name == d.moduleName } != null) {
+                    return
+                }
+
+                ResolvedArtifact har = null
+                if (d.moduleArtifacts.size() > 1) {
+                    har = d.moduleArtifacts.find { a ->
+                        if (a.extension == "har") {
+                            return true
+                        }
+                    }
+                }
+
+                boolean isExclude = (excludeDependencies.find { it.group == d.moduleGroup && it.name == d.moduleName } != null)
+                boolean haveArchive = false
+                d.moduleArtifacts.each { lib ->
+                    if (lib.classifier != null && APP_ABIS.find { it == lib.classifier } != null) {
+                        if (lib.extension == "a" || lib.extension == "so") {
+                            haveArchive = true
+                            File dstDir = new File(varIntermediatesDir, "${d.moduleGroup}/${d.moduleName}/jni")
+                            pw.println("# ${lib.file.path}")
+                            File libPath = new File(dstDir, "${lib.classifier}/lib${lib.name}.${lib.extension}")
+                            sos.put(lib.file, libPath)
+                            if (variantSourceSet != null) {
+                                variantSourceSet.jniLibs.srcDirs += dstDir
+                            }
+                            if (har != null && !isExclude) {
+                                List<File> archLibs = linkLibs.get(lib.classifier)
+                                if (archLibs == null) {
+                                    archLibs = []
+                                    linkLibs.put(lib.classifier, archLibs)
+                                }
+                                archLibs.add(libPath)
+                            }
+                        }
+                    }
+                }
+                if (har != null && haveArchive) {
+                    pw.println("# ${har.file.path}")
+                    File dstDir = new File(varIntermediatesDir, "${d.moduleGroup}/${d.moduleName}/jni")
+                    File includePath = new File(dstDir, "include")
+                    hars.put(har.file, includePath)
+                    if (!isExclude) {
+                        includeDirs.add(includePath)
                     }
                 }
             }
 
-            boolean isExclude = (excludeDependencies.find { it.group == d.moduleGroup && it.name == d.moduleName } != null)
-            boolean haveArchive = false
-            d.moduleArtifacts.each { lib ->
-                if (lib.classifier != null && APP_ABIS.find { it == lib.classifier } != null) {
-                    if (lib.extension == "a" || lib.extension == "so") {
-                        haveArchive = true
-                        File dstDir = new File(varIntermediatesDir, "${d.moduleGroup}/${d.moduleName}/jni")
-                        pw.println("# ${lib.file.path}")
-                        File libPath = new File(dstDir, "${lib.classifier}/lib${lib.name}.${lib.extension}")
-                        sos.put(lib.file, libPath)
-                        if (variantSourceSet != null) {
-                            variantSourceSet.jniLibs.srcDirs += dstDir
-                        }
-                        if (har != null && !isExclude) {
-                            List<File> archLibs = linkLibs.get(lib.classifier)
-                            if (archLibs == null) {
-                                archLibs = []
-                                linkLibs.put(lib.classifier, archLibs)
-                            }
-                            archLibs.add(libPath)
-                        }
+            pw.flush()
+            pw.close()
+
+            /*
+            Configuration configuration = variant.variantData.getVariantDependency().getCompileClasspath().copyRecursive{
+                return !(it instanceof DefaultProjectDependency)
+            }
+            ArtifactCollection aars = computeArtifactCollection(configuration, ArtifactScope.EXTERNAL, ArtifactType.EXPLODED_AAR)
+            */
+
+            //gather 'aar' native info
+            ArtifactCollection aars = GradleApiAdapter.getArtifactCollection(variant, ConsumedConfigType.COMPILE_CLASSPATH, ArtifactScope.EXTERNAL, ArtifactType.EXPLODED_AAR)
+            aars.artifacts.each { aar ->
+                File aarDir = aar.file
+                File includeDir = new File(aarDir, "jni/include")
+                if (includeDir.exists()) {
+                    String[] linkOrder
+                    File linkOrderFile = new File(aarDir, "jni").listFiles().find { it.name.endsWith("link_order.txt") }
+                    if (linkOrderFile != null) {
+                        linkOrder = linkOrderFile.readLines().get(0).split(":")
                     }
-                }
-            }
-            if (har != null && haveArchive) {
-                pw.println("# ${har.file.path}")
-                File dstDir = new File(varIntermediatesDir, "${d.moduleGroup}/${d.moduleName}/jni")
-                File includePath = new File(dstDir, "include")
-                hars.put(har.file, includePath)
-                if (!isExclude) {
-                    includeDirs.add(includePath)
-                }
-            }
-        }
 
-        pw.flush()
-        pw.close()
-
-        /*
-        Configuration configuration = variant.variantData.getVariantDependency().getCompileClasspath().copyRecursive{
-            return !(it instanceof DefaultProjectDependency)
-        }
-        ArtifactCollection aars = computeArtifactCollection(configuration, ArtifactScope.EXTERNAL, ArtifactType.EXPLODED_AAR)
-        */
-
-        //gather 'aar' native info
-        ArtifactCollection aars = GradleApiAdapter.getArtifactCollection(variant, ConsumedConfigType.COMPILE_CLASSPATH, ArtifactScope.EXTERNAL, ArtifactType.EXPLODED_AAR)
-        aars.artifacts.each { aar ->
-            File aarDir = aar.file
-            File includeDir = new File(aarDir, "jni/include")
-            if (includeDir.exists()) {
-                String[] linkOrder
-                File linkOrderFile = new File(aarDir, "jni").listFiles().find { it.name.endsWith("link_order.txt") }
-                if (linkOrderFile != null ) {
-                    linkOrder = linkOrderFile.readLines().get(0).split(":")
-                }
-
-                String[] splitResult = aar.getId().componentIdentifier.displayName.split(":")
-                def group = splitResult[0]
-                def name = splitResult[1]
-                def version = ""
-                if (splitResult.length > 2) {
-                    version = splitResult[2]
-                }
-                //Note dstDir should be same for every ndk build, because ndk-build will check the include files whether
-                //modify to increment build
-                File dstDir = new File(varIntermediatesDir, "${group}/${name}/jni")
-                boolean isExclude = (excludeDependencies.find { it.group == group && it.name == name } != null)
-                if (!isExclude) {
-                    APP_ABIS.each {
-                        File abiDir = new File(aarDir, "jni/${it}")
-                        if (abiDir.exists()) {
-                            Set<File> archLibs = linkLibs.get(it)
-                            if (archLibs == null) {
-                                archLibs = []
-                                linkLibs.put(it, archLibs)
-                            }
-                            List libs = new ArrayList<File>()
-                            libs.addAll(abiDir.listFiles(excludeLibsFilter))
-                            if (linkOrder != null) {
-                                linkOrder.each { libName ->
-                                    File f = libs.find { libName == it.name }
-                                    if (f != null) {
-                                        archLibs.add(f)
-                                        libs.remove(f)
+                    String[] splitResult = aar.getId().componentIdentifier.displayName.split(":")
+                    def group = splitResult[0]
+                    def name = splitResult[1]
+                    def version = ""
+                    if (splitResult.length > 2) {
+                        version = splitResult[2]
+                    }
+                    //Note dstDir should be same for every ndk build, because ndk-build will check the include files whether
+                    //modify to increment build
+                    File dstDir = new File(varIntermediatesDir, "${group}/${name}/jni")
+                    boolean isExclude = (excludeDependencies.find { it.group == group && it.name == name } != null)
+                    if (!isExclude) {
+                        APP_ABIS.each {
+                            File abiDir = new File(aarDir, "jni/${it}")
+                            if (abiDir.exists()) {
+                                Set<File> archLibs = linkLibs.get(it)
+                                if (archLibs == null) {
+                                    archLibs = []
+                                    linkLibs.put(it, archLibs)
+                                }
+                                List libs = new ArrayList<File>()
+                                libs.addAll(abiDir.listFiles(excludeLibsFilter))
+                                if (linkOrder != null) {
+                                    linkOrder.each { libName ->
+                                        File f = libs.find { libName == it.name }
+                                        if (f != null) {
+                                            archLibs.add(f)
+                                            libs.remove(f)
+                                        }
                                     }
                                 }
+                                archLibs.addAll(libs)
                             }
-                            archLibs.addAll(libs)
+                        }
+                        includeDirs.add(new File(aarDir, "jni/include"))
+                    }
+                    nativeLibs.put(includeDir.parentFile, dstDir)
+                }
+            }
+
+            includeDirs.add(tmpMkFile.parentFile)
+            if (android.externalNativeBuild.ndkBuild.path != null) {
+                generateNdkBuildMk(tmpMkFile, includeDirs, linkLibs, wholeStaticLibs)
+                println(":${project.name}:external ndk build ")
+            } else if (android.externalNativeBuild.cmake.path != null) {
+                generateCMakeBuildMk(tmpMkFile, includeDirs, linkLibs, wholeStaticLibs)
+                println(":${project.name}:external cmake build ")
+            } else {
+                generateNdkBuildMk(tmpMkFile, includeDirs, linkLibs, wholeStaticLibs)
+                println(":${project.name}:custom ndk build ")
+            }
+
+            // Compatibility with last version
+            project.copy {
+                from gradleMk
+                into defaultNativeBundle.ANDROID_GRADLE_NATIVE_BUNDLE_PLUGIN_MK.parentFile
+            }
+
+            if (!FileUtils.contentEquals(gradleMk, tmpMkFile)) {
+                if (cacheLibs) {
+                    nativeLibs.each { src, dst ->
+                        dst.deleteDir()
+                        project.copy {
+                            from src
+                            into dst
                         }
                     }
-                    includeDirs.add(new File(aarDir, "jni/include"))
                 }
-                nativeLibs.put(includeDir.parentFile, dstDir)
-            }
-        }
-
-        includeDirs.add(tmpMkFile.parentFile)
-        if (android.externalNativeBuild.ndkBuild.path != null) {
-            generateNdkBuildMk(tmpMkFile, includeDirs, linkLibs, wholeStaticLibs)
-            println(":${project.name}:external ndk build ")
-        } else if (android.externalNativeBuild.cmake.path != null) {
-            generateCMakeBuildMk(tmpMkFile, includeDirs, linkLibs, wholeStaticLibs)
-            println(":${project.name}:external cmake build ")
-        } else {
-            generateNdkBuildMk(tmpMkFile, includeDirs, linkLibs, wholeStaticLibs)
-            println(":${project.name}:custom ndk build ")
-        }
-
-        // Compatibility with last version
-        project.copy {
-            from gradleMk
-            into defaultNativeBundle.ANDROID_GRADLE_NATIVE_BUNDLE_PLUGIN_MK.parentFile
-        }
-
-        if (!FileUtils.contentEquals(gradleMk, tmpMkFile)) {
-            if (cacheLibs) {
-                nativeLibs.each { src, dst ->
-                    dst.deleteDir()
+                sos.each { src, dst ->
+                    if (!dst.parentFile.exists()) {
+                        dst.parentFile.mkdirs()
+                    }
                     project.copy {
                         from src
-                        into dst
+                        into dst.parentFile
+                        rename src.name, dst.name
                     }
                 }
-            }
-            sos.each {src, dst ->
-                if (!dst.parentFile.exists()) {
-                    dst.parentFile.mkdirs()
+                hars.each { src, dst ->
+                    FileTree har = project.zipTree(src)
+                    project.copy {
+                        from har
+                        into dst
+                        include "**/**.h"
+                    }
                 }
+                println(":${project.name}:update native bundle import make file ")
                 project.copy {
-                    from src
-                    into dst.parentFile
-                    rename src.name, dst.name
+                    from tmpMkFile
+                    into tmpMkFile.parentFile
+                    rename tmpMkFile.name, gradleMk.name
                 }
+                // delete externalNativeBuild dir to force gradle recreate then the IDE can parse new native source code
+                File externalBuildDir = new File(project.projectDir, ".externalNativeBuild")
+                externalBuildDir.deleteDir()
+                externalBuildDir = new File(project.projectDir, ".cxx")
+                externalBuildDir.deleteDir()
+                externalBuildDir = new File(project.buildDir, ".cxx")
+                externalBuildDir.deleteDir()
             }
-            hars.each {src, dst ->
-                FileTree har = project.zipTree(src)
-                project.copy {
-                    from har
-                    into dst
-                    include "**/**.h"
-                }
-            }
-            println(":${project.name}:update native bundle import make file ")
-            project.copy {
-                from tmpMkFile
-                into tmpMkFile.parentFile
-                rename tmpMkFile.name, gradleMk.name
-            }
-            // delete externalNativeBuild dir to force gradle recreate then the IDE can parse new native source code
-            File externalBuildDir = new File(project.projectDir, ".externalNativeBuild")
-            externalBuildDir.deleteDir()
-            externalBuildDir = new File(project.projectDir, ".cxx")
-            externalBuildDir.deleteDir()
-            externalBuildDir = new File(project.buildDir, ".cxx")
-            externalBuildDir.deleteDir()
+        } catch (e) {
+            println("NativeBundleImportPlugin hookVariant Exception:" + e)
         }
     }
 

@@ -1,4 +1,4 @@
-apply plugin: 'maven'
+//apply plugin: 'maven'
 apply plugin: 'maven-publish'
 apply from: 'publish_lib.gradle'
 

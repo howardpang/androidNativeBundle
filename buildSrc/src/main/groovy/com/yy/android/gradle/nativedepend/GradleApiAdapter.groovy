@@ -100,11 +100,13 @@ class GradleApiAdapter {
     static void addArgumentToNativeBuildOption(Project project, def variant, String ndkArgument, String cmakeArgument) {
         if (isAndroidGradleVersionGreaterOrEqualTo("7.1.0")) {
             // For configure, see 'com.android.build.gradle.internal.cxx.gradle.generator.CxxConfigurationModel' for detail
-            variant.variantData.getTaskContainer().cxxConfigurationModel.activeAbis.each {
-                if (it.variant.module.buildSystem == NativeBuildSystem.CMAKE) {
-                    it.configurationArguments.add(cmakeArgument)
-                }else {
-                    it.configurationArguments.add(ndkArgument)
+            if(variant.variantData.getTaskContainer().cxxConfigurationModel != null) {
+                variant.variantData.getTaskContainer().cxxConfigurationModel.activeAbis.each {
+                    if (it.variant.module.buildSystem == NativeBuildSystem.CMAKE) {
+                        it.configurationArguments.add(cmakeArgument)
+                    } else {
+                        it.configurationArguments.add(ndkArgument)
+                    }
                 }
             }
             // For build

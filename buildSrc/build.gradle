@@ -7,8 +7,8 @@ javadoc {
 }
 
 repositories {
-    jcenter()
     google()
+    mavenCentral()
 }
 
 dependencies {
